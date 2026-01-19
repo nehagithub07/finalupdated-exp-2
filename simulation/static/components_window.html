@@ -618,6 +618,7 @@
         const speechSupported =
             "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function";
         const isEmbedded = window.parent && window.parent !== window;
+        let autoPlayFallbackArmed = false;
 
         let currentIndex = 0;
         let swapTimer = null;
@@ -687,6 +688,24 @@
             }
         }
 
+        function notifyParent(type) {
+            if (!isEmbedded) return;
+            window.parent.postMessage({ type }, "*");
+        }
+
+        function armAutoPlayFallback() {
+            if (autoPlayFallbackArmed) return;
+            autoPlayFallbackArmed = true;
+
+            const resume = () => {
+                autoPlayFallbackArmed = false;
+                playAudio({ allowFallback: false });
+            };
+
+            document.addEventListener("pointerdown", resume, { once: true });
+            document.addEventListener("keydown", resume, { once: true });
+        }
+
         function stopAudio() {
             if (audioEl) {
                 audioEl.pause();
@@ -699,13 +718,27 @@
             updateAudioButton(false);
         }
 
-        function playAudio() {
+        function playAudio(options = {}) {
+            const allowFallback = options.allowFallback === true;
             if (audioMode === "file") {
                 if (!audioEl) return;
-                if (audioEl.paused) {
-                    audioEl.play().catch(() => {});
+                if (!audioEl.paused) {
+                    updateAudioButton(true);
+                    return;
                 }
-                updateAudioButton(true);
+                const playAttempt = audioEl.play();
+                if (playAttempt && typeof playAttempt.catch === "function") {
+                    playAttempt.catch(() => {
+                        updateAudioButton(false);
+                        if (allowFallback) {
+                            setAudioStatus("Tap to enable audio");
+                            notifyParent("component-audio-blocked");
+                            armAutoPlayFallback();
+                        }
+                    });
+                } else {
+                    updateAudioButton(true);
+                }
                 return;
             }
 
@@ -844,6 +877,12 @@
         nextBtn.addEventListener("click", () => setActive(currentIndex + 1));
 
         if (audioEl) {
+            audioEl.addEventListener("play", () => {
+                if (audioMode === "file") {
+                    setAudioStatus("");
+                    updateAudioButton(true);
+                }
+            });
             audioEl.addEventListener("ended", () => updateAudioButton(false));
             audioEl.addEventListener("pause", () => {
                 if (audioEl.currentTime === 0 || audioEl.ended) return;
@@ -862,14 +901,15 @@
         }
 
         if (audioBtn) {
-            audioBtn.addEventListener("click", () => {
+            audioBtn.addEventListener("click", (event) => {
                 const isPlaying = audioBtn.getAttribute("aria-pressed") === "true";
+                const allowFallback = isEmbedded && event?.isTrusted === false;
                 if (isPlaying) {
                     pauseAudio();
                     autoPlayOnChange = false;
                 } else {
                     autoPlayOnChange = true;
-                    playAudio();
+                    playAudio({ allowFallback });
                 }
             });
         }
@@ -882,7 +922,7 @@
                     audioBtn?.click();
                 }
                 if (data.type === "component-audio-play") {
-                    playAudio();
+                    playAudio({ allowFallback: true });
                 }
                 if (data.type === "component-audio-pause") {
                     pauseAudio();

@@ -2627,10 +2627,10 @@ tr:nth-child(even) { background-color: #f8fbff; }
   const AUDIO_STORAGE =
     (() => {
       try {
-        return window.localStorage;
+        return window.sessionStorage;
       } catch (e) {
         try {
-          return window.sessionStorage;
+          return window.localStorage;
         } catch (err) {
           return null;
         }
@@ -2654,10 +2654,15 @@ tr:nth-child(even) { background-color: #f8fbff; }
   }
 
   let frameReady = false;
-  const firstAudioVisit = !hasAutoPlayedAudio();
-  let autoPlayPending = firstAudioVisit;
-  if (firstAudioVisit) {
+  let autoPlayPending = !hasAutoPlayedAudio();
+  let autoPlayRequested = false;
+  let autoPlayRetryArmed = false;
+
+  function markAutoPlayComplete() {
+    if (!autoPlayPending) return;
     markAutoPlayedAudio();
+    autoPlayPending = false;
+    autoPlayRequested = false;
   }
 
     function updateAudioControl(state = {}) {
@@ -2676,10 +2681,24 @@ tr:nth-child(even) { background-color: #f8fbff; }
     }
 
     function maybeAutoPlayAudio() {
-      if (!autoPlayPending || !frameReady) return;
+      if (!autoPlayPending || !frameReady || autoPlayRequested) return;
       postAudioMessage("component-audio-play");
-      autoPlayPending = false;
-      markAutoPlayedAudio();
+      autoPlayRequested = true;
+    }
+
+    function armAutoPlayRetry() {
+      if (autoPlayRetryArmed || !autoPlayPending) return;
+      autoPlayRetryArmed = true;
+
+      const resume = () => {
+        autoPlayRetryArmed = false;
+        if (!frameReady) return;
+        postAudioMessage("component-audio-play");
+        autoPlayRequested = true;
+      };
+
+      document.addEventListener("pointerdown", resume, { once: true });
+      document.addEventListener("keydown", resume, { once: true });
     }
 
     function requestAudioState() {
@@ -2705,8 +2724,26 @@ tr:nth-child(even) { background-color: #f8fbff; }
     window.addEventListener("message", (event) => {
       if (!componentsFrame || event.source !== componentsFrame.contentWindow) return;
       const data = event.data || {};
-      if (data.type !== "component-audio-state") return;
-      updateAudioControl(data.state || data);
+      if (data.type === "component-audio-state") {
+        updateAudioControl(data.state || data);
+        if (autoPlayPending && data.playing) {
+          markAutoPlayComplete();
+        }
+        return;
+      }
+      if (data.type === "component-audio-blocked") {
+        if (autoPlayPending) {
+          autoPlayRequested = false;
+          armAutoPlayRetry();
+        }
+        if (audioBtn) {
+          updateAudioControl({
+            playing: false,
+            disabled: audioBtn.disabled,
+            label: "Tap to enable audio"
+          });
+        }
+      }
     });
 
     function openComponentsModal({ force = false } = {}) {
@@ -2725,6 +2762,10 @@ tr:nth-child(even) { background-color: #f8fbff; }
       modal.classList.add("is-hidden");
       document.body.classList.remove("is-modal-open");
       postAudioMessage("component-audio-stop");
+
+      if (autoPlayPending) {
+        autoPlayRequested = false;
+      }
 
       if (skip && STORAGE) {
         try {

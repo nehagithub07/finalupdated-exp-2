@@ -45,6 +45,27 @@
       100% { opacity: 0; transform: translate(8px, -50%) scale(0.94); }
     }
 
+    @keyframes intro-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+
+    @keyframes intro-ring-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes intro-glow {
+      0%, 100% { opacity: 0.5; transform: scale(0.92); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    @keyframes intro-ping {
+      0% { transform: scale(0.65); opacity: 0; }
+      25% { opacity: 0.7; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+
     /* Stagger animation for menu items */
     .menu-item:nth-child(1) { animation-delay: 0.1s; }
     .menu-item:nth-child(2) { animation-delay: 0.2s; }
@@ -365,6 +386,92 @@
       animation: chatbot-float 2.4s ease-in-out infinite;
     }
 
+    .chatbot-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.65rem;
+    }
+
+    .intro-launcher {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      border: 2px solid rgba(11, 96, 168, 0.35);
+      background: #ffffff;
+      color: #0b60a8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 18px 30px rgba(2, 26, 44, 0.2);
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease, border-color 160ms ease;
+      overflow: visible;
+    }
+
+    .intro-launcher:hover {
+      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
+      color: #ffffff;
+      border-color: rgba(2, 26, 44, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 22px 34px rgba(2, 26, 44, 0.3);
+    }
+
+    .intro-icon {
+      position: relative;
+      width: 58px;
+      height: 58px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      animation: intro-float 2.6s ease-in-out infinite;
+      z-index: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #dbeafe);
+      box-shadow: inset 0 0 0 2px rgba(11, 96, 168, 0.2);
+    }
+
+    .intro-icon::before,
+    .intro-icon::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      z-index: -1;
+    }
+
+    .intro-icon::before {
+      inset: -6px;
+      border: 2px solid rgba(14, 165, 233, 0.45);
+      background: conic-gradient(from 120deg, rgba(14, 165, 233, 0.15), rgba(2, 26, 44, 0.15), rgba(14, 165, 233, 0.15));
+      animation: intro-ring-spin 6s linear infinite;
+    }
+
+    .intro-icon::after {
+      inset: -14px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.4), rgba(56, 189, 248, 0) 70%);
+      animation: intro-glow 2.8s ease-in-out infinite;
+    }
+
+    .intro-icon-ping {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      animation: intro-ping 3.2s ease-out infinite;
+    }
+
+    .intro-icon-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #ffffff;
+      filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.25));
+      transition: transform 160ms ease;
+    }
+
+    .intro-launcher:hover .intro-icon-image { transform: scale(1.08); }
+
     .chatbot-hint-bubble {
       position: absolute;
       right: 100%;
@@ -409,6 +516,9 @@
     @media (max-width: 640px) {
       .chatbot-launcher { width: 64px; height: 64px; }
       .chatbot-launcher-image { width: 50px; height: 50px; }
+      .intro-launcher { width: 64px; height: 64px; }
+      .intro-icon { width: 50px; height: 50px; }
+      .intro-icon-image { width: 50px; height: 50px; }
       .chatbot-hint-bubble { display: none; }
     }
 
@@ -953,13 +1063,21 @@
         </div>
       </div>
 
-      <button type="button" class="chatbot-launcher" aria-expanded="false" aria-label="Open chatbot assistant">
-        <span class="chatbot-hint-bubble">
-          <span class="chatbot-hint-dot">Hi </span>
-          Ask anything about this experiment
-        </span>
-        <img src="./images/chatbot.png" alt="" aria-hidden="true" class="chatbot-launcher-image">
-      </button>
+      <div class="chatbot-actions">
+        <button type="button" class="chatbot-launcher" aria-expanded="false" aria-label="Open chatbot assistant">
+          <span class="chatbot-hint-bubble">
+            <span class="chatbot-hint-dot">Hi </span>
+            Ask anything about this experiment
+          </span>
+          <img src="./images/chatbot.png" alt="" aria-hidden="true" class="chatbot-launcher-image">
+        </button>
+        <button type="button" class="intro-launcher" id="intro-launcher" aria-label="Open introduction panel">
+          <span class="intro-icon" aria-hidden="true">
+            <span class="intro-icon-ping"></span>
+            <img src="./images/intro.png" alt="" class="intro-icon-image">
+          </span>
+        </button>
+      </div>
     </div>
 
     <audio id="chatbot-notification-audio" preload="auto">
@@ -973,6 +1091,7 @@
   <div
     id="intro-modal"
     class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+    data-intro-autoshow="always"
     style="display: none;"
   >
     <div class="modal-container bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden">
@@ -1140,7 +1259,7 @@
   </script>
 
 
-  <!-- INTRO POPUP SCRIPT (auto-open once on first visit to aim.html) -->
+  <!-- INTRO POPUP SCRIPT (auto-open based on data-intro-autoshow) -->
   <script>
     const DEFAULT_CUE_LEAD = 0.65; // seconds before narration to reveal text
     const introCues = [
@@ -1495,17 +1614,25 @@
     if (pauseBtn) pauseBtn.addEventListener('click', () => { audioEl.pause(); });
     if (skipBtn) skipBtn.addEventListener('click', closeIntroModal);
 
-    // Auto-open intro once on first visit to aim.html
+    // Auto-open intro on aim.html (controlled by data-intro-autoshow)
     let introAutoShown = false;
+    const introLauncher = document.getElementById('intro-launcher');
+    if (introLauncher) {
+      introLauncher.addEventListener('click', () => {
+        introAutoShown = true;
+        showIntroModal();
+      });
+    }
     function autoShowIntro() {
       if (introAutoShown || !introModal) return;
-      if (hasIntroBeenShown()) return;
+      const autoShowMode = String(introModal.dataset.introAutoshow || 'once').toLowerCase();
+      const shouldAutoShow = autoShowMode === 'always' || !hasIntroBeenShown();
+      if (!shouldAutoShow) return;
 
       const page = (window.location.pathname.split('/').pop() || '').toLowerCase();
       if (page === 'aim.html') {
         introAutoShown = true;
         showIntroModal();
-        markIntroAsShown();
       }
     }
 
