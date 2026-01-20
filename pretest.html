@@ -196,11 +196,41 @@
     }
     .menu-item {
       border-left: 3px solid transparent;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0.75rem;
+      transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
     }
+
+    .menu-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(11, 96, 168, 0.15), transparent 60%);
+      opacity: 0;
+      transform: translateX(-100%);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .menu-item:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
     .menu-item:hover,
     .menu-item.active {
       border-left-color: #0b60a8;
-      background: rgba(11, 96, 168, 0.06);
+      background: rgba(255, 255, 255, 0.85);
+      transform: translateX(6px);
+      box-shadow: 0 12px 30px rgba(2, 26, 44, 0.15);
+    }
+
+    .menu-item.active::after {
+      opacity: 1;
+      transform: translateX(0);
     }
 
     /* Override Tailwind blue accents with lab primary theme */
@@ -667,11 +697,11 @@
 <script>
 /* ------------------ 20 QUESTIONS ------------------ */
 const questions = [
-  {id:1,text:'DC shunt generator has terminal voltage versus load current characteristic which is',choices:['A. Constant','B. Slightly drooping','C. Slightly rising','D. Highly drooping'],answer:'D',selected:null},
+  {id:1,text:'DC shunt generator has terminal voltage versus load current characteristic which is',choices:['A. Constant','B. Slightly drooping','C. Slightly rising','D. Highly drooping'],answer:'B',selected:null},
   {id:2,text:'Which dc generator gives constant output voltage at all loads?',choices:['A. Shunt generator','B. Series generator','C. Short shunt compound generator','D. Level compound generator'],answer:'D',selected:null},
   {id:3,text:'The terminal voltage of dc shunt generator drops on load because of',choices:['A. Armature reaction','B. Armature resistance','C. Weak field','D. All of these'],answer:'D',selected:null},
   {id:4,text:'If the load on over-compounded dc generator is reduced, terminal voltage',choices:['A. Increases','B. Decreases','C. Unchanged','D. May change'],answer:'B',selected:null},
-  {id:5,text:'Copper losses in armature of dc generator are',choices:['A. 5–10%','B. 10–20%','C. 20–30%','D. 30–40%'],answer:'D',selected:null},
+  {id:5,text:'Copper losses in armature of dc generator are',choices:['A. 5–10%','B. 10–20%','C. 20–30%','D. 30–40%'],answer:'A',selected:null},
   {id:6,text:'Main function of DC generator is:',choices:['A) Convert electrical→mechanical','B) Convert mechanical→electrical','C) Step up voltage','D) Step down current'],answer:'B',selected:null},
   {id:7,text:'Field winding of DC shunt generator is connected:',choices:['A) In series','B) In parallel','C) Across load','D) In series with load'],answer:'B',selected:null},
   {id:8,text:'Generated emf in DC generator:',choices:['A) E=V+IaRa','B) E=kΦN','C) E=V/I','D) E=P/I'],answer:'B',selected:null},
@@ -685,7 +715,7 @@ const questions = [
   {id:16,text:'External characteristic shows:',choices:['A) Eg–If','B) V–IL','C) Eg–Ia','D) torque–speed'],answer:'B',selected:null},
   {id:17,text:'Losses in DC generator:',choices:['A) Copper','B) Iron','C) Mechanical','D) All'],answer:'D',selected:null},
   {id:18,text:'Load test determines:',choices:['A) Armature efficiency','B) Speed regulation','C) Load characteristics','D) Field efficiency'],answer:'C',selected:null},
-  {id:19,text:'Field current in DC shunt generator is:',choices:['A) Constant','B) Depends on speed','C) Depends on load','D) Zero'],answer:'A',selected:null},
+  {id:19,text:'Field current in DC shunt generator is:',choices:['A) Constant','B) Depends on speed','C) Depends on load','D) Zero'],answer:'C',selected:null},
   {id:20,text:'Terminal voltage at full load:',choices:['A) = Eg','B) > Eg','C) < Eg','D) Independent'],answer:'C',selected:null},
 ];
 

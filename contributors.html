@@ -223,11 +223,41 @@
     }
     .menu-item {
       border-left: 3px solid transparent;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0.75rem;
+      transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
     }
+
+    .menu-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(11, 96, 168, 0.15), transparent 60%);
+      opacity: 0;
+      transform: translateX(-100%);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .menu-item:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
     .menu-item:hover,
     .menu-item.active {
       border-left-color: #0b60a8;
-      background: rgba(11, 96, 168, 0.06);
+      background: rgba(255, 255, 255, 0.85);
+      transform: translateX(6px);
+      box-shadow: 0 12px 30px rgba(2, 26, 44, 0.15);
+    }
+
+    .menu-item.active::after {
+      opacity: 1;
+      transform: translateX(0);
     }
 
     /* Override Tailwind blue accents with lab primary theme */

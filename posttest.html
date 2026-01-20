@@ -196,11 +196,41 @@
     }
     .menu-item {
       border-left: 3px solid transparent;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 0.75rem;
+      transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6);
     }
+
+    .menu-item::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(11, 96, 168, 0.15), transparent 60%);
+      opacity: 0;
+      transform: translateX(-100%);
+      transition: opacity 220ms ease, transform 220ms ease;
+    }
+
+    .menu-item:hover::after {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
     .menu-item:hover,
     .menu-item.active {
       border-left-color: #0b60a8;
-      background: rgba(11, 96, 168, 0.06);
+      background: rgba(255, 255, 255, 0.85);
+      transform: translateX(6px);
+      box-shadow: 0 12px 30px rgba(2, 26, 44, 0.15);
+    }
+
+    .menu-item.active::after {
+      opacity: 1;
+      transform: translateX(0);
     }
 
     /* Override Tailwind blue accents with lab primary theme */
@@ -669,9 +699,9 @@
 /* ------------------ 20 QUESTIONS ------------------ */
 const questions = [
   {id:1,text:'Armature magnetic field in a DC generator produces which of the following effect?',choices:['A: It demagnetizes or reduces the main flux','B: It cross-magnetizes the main flux','C: It magnetizes or reinforces the main flux','D: Both (a) and (b)'],answer:'D',selected:null},
-  {id:2,text:'In a DC generator, the polarity of the interpole is:',choices:['A: Always N','B: Always S','C: Same as the main pole ahead','D: Same as main pole behind'],answer:'D',selected:null},
-  {id:3,text:'In a DC generator, compared to the air gap under field poles, the interpole air gap is made:',choices:['A: Larger','B: Smaller','C: The same','D: Much smaller'],answer:'B',selected:null},
-  {id:4,text:'The function of using compensating winding in DC machines is to neutralize the:',choices:['A: Armature reaction in the interpole zone','B: Armature reaction in the commutating zone','C: Armature reaction under the pole faces','D: Cross-magnetizing armature reaction'],answer:'C',selected:null},
+  {id:2,text:'In a DC generator, the polarity of the interpole is:',choices:['A: Always N','B: Always S','C: Same as the main pole ahead','D: Same as main pole behind'],answer:'C',selected:null},
+  {id:3,text:'In a DC generator, compared to the air gap under field poles, the interpole air gap is made:',choices:['A: Larger','B: Smaller','C: The same','D: Much smaller'],answer:'A',selected:null},
+  {id:4,text:'The function of using compensating winding in DC machines is to neutralize the:',choices:['A: Armature reaction in the interpole zone','B: Armature reaction in the commutating zone','C: Armature reaction under the pole faces','D: Cross-magnetizing armature reaction'],answer:'D',selected:null},
   {id:5,text:'The yoke of a DC generator is made of cast iron because:',choices:['A: It is cheaper','B: It completes the magnetic path','C: It gives mechanical protection','D: All of these'],answer:'D',selected:null},
   {id:6,text:'What happens to the terminal voltage of a DC shunt generator as load increases?',choices:['A: It increases','B: It decreases','C: It remains constant','D: It first increases then decreases'],answer:'B',selected:null},
   {id:7,text:'The main reason for the drop in terminal voltage under load is:',choices:['A: Armature resistance drop and armature reaction','B: Decrease in field resistance','C: Increase in field current','D: Decrease in speed'],answer:'A',selected:null},
