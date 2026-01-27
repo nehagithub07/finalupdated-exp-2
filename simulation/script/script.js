@@ -2068,9 +2068,20 @@ tr:nth-child(even) { background-color: #f8fbff; }
         document.getElementById('report-graph').innerHTML = '<em>No readings available to plot.</em>';
       }
     })();
-  </script>
+</script>
 </body>
 </html>`;
+
+    try {
+      const stamp = String(Date.now());
+      localStorage.setItem("vlab_exp2_simulation_report_html", html);
+      localStorage.setItem("vlab_exp2_simulation_report_updated_at", stamp);
+      const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
+      if (activeHash) {
+        localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_html`, html);
+        localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_updated_at`, stamp);
+      }
+    } catch (e) {}
 
     const reportWindow = window.open("", "report");
     if (!reportWindow) {

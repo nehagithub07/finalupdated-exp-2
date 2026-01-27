@@ -776,6 +776,31 @@
         background 0.3s ease;
     }
 
+    .modal-actions {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .modal-actions .modal-close-btn {
+      margin-top: 0;
+      min-width: 110px;
+    }
+
+    .modal-secondary-btn {
+      background: linear-gradient(135deg, #ffffff, #f3f4f6);
+      color: #1f2937;
+      border-color: rgba(184, 155, 62, 0.65);
+    }
+
+    .modal-close-btn.modal-secondary-btn:hover {
+      background: linear-gradient(135deg, #f9fafb, #ffffff);
+      color: #111827;
+    }
+
     .modal-close-btn:hover {
       transform: translateY(-2px) scale(1.03);
       box-shadow: 0 8px 20px rgba(184, 155, 62, 0.4);
@@ -827,6 +852,7 @@
 </head>
 
 <body class="bg-gray-50 min-h-screen">
+
 
   <!-- HEADER -->
      <header class="vl-header shadow-xl fixed top-0 left-0 right-0 z-50">
@@ -937,12 +963,12 @@
     Contributors
   </a>
 
-  <a href="#feedback" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
+  <a href="aim.html#progressreport" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
     <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
     </svg>
-    Feedback
+    Progress Report
   </a>
         </nav>
       </div>
@@ -1051,6 +1077,10 @@
     <div class="modal-box danger" role="document">
       <h2 id="modalTitle">Alert</h2>
       <p id="modalMessage"></p>
+      <div class="modal-actions" data-modal-actions hidden>
+        <button type="button" class="modal-close-btn" data-modal-yes>Yes</button>
+        <button type="button" class="modal-close-btn modal-secondary-btn" data-modal-no>No</button>
+      </div>
       <button type="button" class="modal-close-btn" data-modal-close>OK</button>
     </div>
   </div>
@@ -1077,16 +1107,28 @@
 
   <script>
     let popupOnClose = null;
+    let popupMode = 'alert';
+    let popupOnYes = null;
+    let popupOnNo = null;
 
     function showPopup(message, title = 'Alert', options = {}) {
       if (!message) return;
       const onClose = typeof options?.onClose === 'function' ? options.onClose : null;
       popupOnClose = onClose;
+      popupMode = options?.mode === 'confirm' ? 'confirm' : 'alert';
+      popupOnYes = typeof options?.onYes === 'function' ? options.onYes : null;
+      popupOnNo = typeof options?.onNo === 'function' ? options.onNo : null;
 
       const modal = document.getElementById('warningModal');
       if (!modal) {
-        window.alert(String(message));
-        if (onClose) onClose();
+        if (popupMode === 'confirm') {
+          const confirmed = window.confirm(String(message));
+          if (confirmed && popupOnYes) popupOnYes();
+          if (!confirmed && popupOnNo) popupOnNo();
+        } else {
+          window.alert(String(message));
+          if (onClose) onClose();
+        }
         return;
       }
 
@@ -1094,9 +1136,23 @@
       const msg = modal.querySelector('#modalMessage');
       const ttl = modal.querySelector('#modalTitle');
       const sound = document.getElementById('alertSound');
+      const okBtn = modal.querySelector('[data-modal-close]');
+      const actions = modal.querySelector('[data-modal-actions]');
+      const yesBtn = modal.querySelector('[data-modal-yes]');
+      const noBtn = modal.querySelector('[data-modal-no]');
 
       if (ttl) ttl.textContent = String(title || 'Alert');
       if (msg) msg.textContent = String(message);
+
+      if (popupMode === 'confirm') {
+        if (actions) actions.hidden = false;
+        if (okBtn) okBtn.hidden = true;
+        window.setTimeout(() => yesBtn?.focus?.(), 0);
+      } else {
+        if (actions) actions.hidden = true;
+        if (okBtn) okBtn.hidden = false;
+        window.setTimeout(() => okBtn?.focus?.(), 0);
+      }
 
       if (box) {
         box.classList.remove('closing');
@@ -1115,13 +1171,19 @@
       }
     }
 
-    function closePopup() {
+    function closePopup(action = 'close') {
       const modal = document.getElementById('warningModal');
       if (!modal) return;
       const box = modal.querySelector('.modal-box');
       const sound = document.getElementById('alertSound');
       const onClose = popupOnClose;
+      const onYes = popupOnYes;
+      const onNo = popupOnNo;
+      const mode = popupMode;
       popupOnClose = null;
+      popupOnYes = null;
+      popupOnNo = null;
+      popupMode = 'alert';
 
       if (box) {
         box.classList.add('closing');
@@ -1133,7 +1195,15 @@
           box.classList.remove('closing');
         }
         document.body.classList.remove('is-modal-open');
-        if (onClose) onClose();
+        if (mode === 'confirm') {
+          if (action === 'yes') {
+            if (onYes) onYes();
+          } else {
+            if (onNo) onNo();
+          }
+        } else {
+          if (onClose) onClose();
+        }
       }, 450);
 
       if (sound && typeof sound.pause === 'function') {
@@ -1151,17 +1221,24 @@
       if (!modal) return;
 
       const closeBtn = modal.querySelector('[data-modal-close]');
-      if (closeBtn) closeBtn.addEventListener('click', closePopup);
+      const yesBtn = modal.querySelector('[data-modal-yes]');
+      const noBtn = modal.querySelector('[data-modal-no]');
+
+      const dismissAction = () => (popupMode === 'confirm' ? 'no' : 'close');
+
+      if (closeBtn) closeBtn.addEventListener('click', () => closePopup('close'));
+      if (yesBtn) yesBtn.addEventListener('click', () => closePopup('yes'));
+      if (noBtn) noBtn.addEventListener('click', () => closePopup('no'));
 
       modal.addEventListener('click', (event) => {
         if (event.target === modal) {
-          closePopup();
+          closePopup(dismissAction());
         }
       });
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && isPopupOpen()) {
-          closePopup();
+          closePopup(dismissAction());
         }
       });
     })();
@@ -1204,7 +1281,8 @@
           if (!url) return;
           event.preventDefault();
           showPopup(reminderMessage, 'Reminder', {
-            onClose: () => {
+            mode: 'confirm',
+            onYes: () => {
               window.location.href = url;
             }
           });

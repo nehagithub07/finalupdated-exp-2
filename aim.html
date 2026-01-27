@@ -1238,12 +1238,12 @@
               Contributors
             </a>
 
-            <a href="#feedback" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
+            <a href="#progressreport" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
               <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
               </svg>
-              Feedback
+              Progress report
             </a>
           </nav>
         </div>
@@ -1364,12 +1364,23 @@
           </div>
         </section>
 
-        <section id="feedback" class="section-content vl-card mb-8 p-6 animate-fadeInUp hidden">
-          <div class="border-l-4 border-orange-600 pl-4">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              Feedback
-            </h2>
-            <div class="section-text text-gray-700 leading-relaxed text-lg"></div>
+        <section id="progressreport" class="section-content vl-card mb-8 p-6 animate-fadeInUp hidden">
+          <div class="border-l-4 border-orange-600 pl-4 mb-4 flex items-center justify-between">
+            <div class="flex items-center">
+              <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+                Progress Report
+              </h2>
+            </div>
+            <span class="text-sm text-gray-600">Embedded view (opens within this page)</span>
+          </div>
+          <div class="w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+            <iframe
+              src="progressreport.html"
+              title="Progress Report"
+              class="w-full"
+              style="min-height: 900px;"
+              loading="lazy"
+            ></iframe>
           </div>
         </section>
       </main>
@@ -1585,6 +1596,20 @@
         }
       });
     });
+
+    // If page loads with a hash (e.g., aim.html#progressreport), show that section
+    (function showSectionFromHash() {
+      const hash = window.location.hash ? window.location.hash.replace('#', '') : '';
+      if (!hash) return;
+      const targetSection = document.getElementById(hash);
+      if (!targetSection) return;
+      document.querySelectorAll('.section-content').forEach(sec => sec.classList.add('hidden'));
+      targetSection.classList.remove('hidden');
+      document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+      const menuItem = document.querySelector(`a[href="#${hash}"]`);
+      if (menuItem) menuItem.classList.add('active');
+      targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    })();
 
     // Highlight current page
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';

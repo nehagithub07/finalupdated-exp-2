@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experiment Progress Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap');
+
+    :root {
+      --ink: #0b1224;
+      --muted: #4b5563;
+      --accent: #0f6ad8;
+      --accent-2: #0bb9e8;
+      --panel: #ffffff;
+      --border: #d9e3f5;
+      --bg: radial-gradient(120% 90% at 15% 10%, #e3ecff, transparent 45%), radial-gradient(110% 80% at 80% 0%, #e7fbff, transparent 50%), #f7f9fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Decorative blobs */
+    .blob {
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      filter: blur(96px);
+      opacity: 0.34;
+      z-index: 0;
+    }
+    .blob-1 { background: #7cc6ff; top: -120px; left: -140px; }
+    .blob-2 { background: #c8d9ff; bottom: -200px; right: -120px; }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.04) 1px, transparent 0);
+      background-size: 18px 18px;
+      opacity: 0.35;
+      z-index: 0;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 32px auto 48px;
+      padding: 0 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero { margin-bottom: 20px; }
+    .eyebrow {
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0;
+    }
+    h1 { margin: 6px 0 8px; font-size: 28px; }
+    h2 { margin: 4px 0 8px; font-size: 22px; }
+    .lede { margin: 0; color: var(--muted); max-width: 760px; line-height: 1.6; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 22px 24px;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(6px);
+    }
+
+    form { margin-top: 8px; }
+    .field { display: flex; flex-direction: column; margin-bottom: 14px; }
+    .two-col { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font-size: 15px;
+      color: var(--ink);
+      background: #f7fbff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+    }
+
+    input[readonly] { background: #f3f6fb; }
+
+    .hint { margin-top: 6px; color: var(--muted); font-size: 13px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 14px;
+      background: #e6f4ff;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #ffffff;
+      box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25);
+    }
+
+    .btn-ghost { background: #eef3fb; color: var(--ink); }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .placeholder {
+      color: var(--muted);
+      background: #f8fbff;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+
+    .report-content { margin-top: 8px; display: grid; gap: 14px; }
+    .report-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .stamp {
+      background: #0b60a8;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .report-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .block {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      background: #fdfefe;
+    }
+
+    .block h3 { margin: 4px 0 6px; font-size: 16px; }
+
+    dl { margin: 0; display: grid; grid-template-columns: auto 1fr; row-gap: 8px; column-gap: 10px; }
+    dt { color: var(--muted); font-weight: 600; }
+    dd { margin: 0; font-weight: 700; }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    .stat {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f7fbff;
+      padding: 12px 14px;
+    }
+
+    .stat strong { display: block; font-size: 20px; margin-top: 4px; }
+
+    .sim-wrapper { margin-top: 8px; }
+    .sim-frame {
+      width: 100%;
+      min-height: 900px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .empty { color: var(--muted); font-style: italic; }
+    .hidden { display: none; }
+    @media (max-width: 640px) { .report-head { align-items: flex-start; } }
+
+    /* Inline status */
+    .status {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fbff;
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .status.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+    .status.success { border-color: #10b981; background: #ecfdf3; color: #065f46; }
+    .status.info { border-color: #0ea5e9; background: #eff6ff; color: #0b4f7b; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* History */
+    .history-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .history-item { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fff; }
+    .history-meta { font-size: 13px; color: var(--muted); }
+
+    /* Toasts */
+    #toastStack {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      display: grid;
+      gap: 10px;
+      z-index: 50;
+      max-width: 340px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #fff;
+      box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+      color: var(--ink);
+      font-weight: 600;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadein 120ms ease-out, slideout 120ms ease-in forwards;
+    }
+    .toast.info { border-color: #0ea5e9; background: #eff6ff; color: #0b4f7b; }
+    .toast.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+    .toast.success { border-color: #10b981; background: #ecfdf3; color: #065f46; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideout { to { opacity: 0; transform: translateY(-6px); } }
+
+    /* Print-friendly */
+    @media print {
+      body { background: #fff; }
+      .blob, .noise, .actions, #formStatus, #consentNote { display: none !important; }
+      .panel { box-shadow: none; border: 1px solid #ddd; }
+      .stamp { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="toastStack" aria-live="polite" aria-atomic="true"></div>
+  <main class="page">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="noise"></div>
+    <header class="hero">
+      <p class="eyebrow">User Input Form</p>
+      <h1>Experiment Progress & Report</h1>
+      <p class="lede">
+        Enter your details and generate an experiment report. Pre-test and post-test scores, plus the full simulation report, are pulled automatically from your previous attempts.
+      </p>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <p class="eyebrow">Details</p>
+        <h2>User Input Form</h2>
+        <form id="reportForm" novalidate>
+          <div class="sr-only" aria-live="polite" id="statusLive"></div>
+          <div class="field">
+            <label for="fullName">Name</label>
+            <input id="fullName" name="name" autocomplete="name" type="text" placeholder="Enter your name" required>
+          </div>
+
+          <div class="field">
+            <label for="email">Email ID</label>
+            <input id="email" name="email" autocomplete="email" type="email" placeholder="name@example.com" required>
+          </div>
+
+          <div class="field two-col">
+            <div>
+              <label for="preScore">Pre-test Score</label>
+              <input id="preScore" name="preScore" type="number" inputmode="numeric" readonly>
+              <p id="preHint" class="hint">Auto-fills after you complete the pre-test.</p>
+            </div>
+            <div>
+              <label for="postScore">Post-test Score</label>
+              <input id="postScore" name="postScore" type="number" inputmode="numeric" readonly>
+              <p id="postHint" class="hint">Auto-fills after you complete the post-test.</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="designation">Designation</label>
+            <select id="designation" name="designation" required>
+              <option value="" disabled selected>Select one</option>
+              <option>Student</option>
+              <option>Faculty</option>
+              <option>Working Professional</option>
+              <option>PhD Scholar</option>
+            </select>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn-primary">Generate Report</button>
+            <button type="button" id="refreshButton" class="btn-ghost">Refresh Saved Scores</button>
+            <button type="button" id="resetButton" class="btn-ghost">Start Fresh</button>
+            <button type="button" id="clearSavedButton" class="btn-ghost">Clear Saved Data</button>
+          </div>
+          <div class="field" style="margin-top:4px;">
+            <label style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px;">
+              <input id="useScores" type="checkbox" style="width:18px;height:18px;accent-color:#0ea5e9;">
+              Use saved assessment scores (pre/post) if available
+            </label>
+            <p class="hint">Leave unchecked for new users; check to auto-fill scores from previous attempts on this browser.</p>
+          </div>
+          <div class="field" style="margin-top:6px;">
+            <label style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:14px;">
+              <input id="attachSim" type="checkbox" style="width:18px;height:18px;accent-color:#0ea5e9;"> Attach latest Simulation Report
+            </label>
+            <p class="hint">Leave unchecked if you have not generated a simulation report yet.</p>
+          </div>
+          <p class="hint chip">Scores are fetched from your previous pre-test and post-test runs; simulation is attached only when opted in and available.</p>
+          <p id="consentNote" class="hint">Your data is stored locally on this device (per email hash). Use “Clear Saved Data” anytime.</p>
+          <div id="formStatus" class="status info hidden"></div>
+          <div class="actions" style="margin-top:6px;">
+            <a class="btn-ghost" style="text-decoration:none; padding:10px 12px; display:inline-block;" href="pretest.html" target="_top">Go to Pre-test</a>
+            <a class="btn-ghost" style="text-decoration:none; padding:10px 12px; display:inline-block;" href="posttest.html" target="_top">Go to Post-test</a>
+            <a class="btn-ghost" style="text-decoration:none; padding:10px 12px; display:inline-block;" href="simulation.html" target="_top">Go to Simulation</a>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" id="reportPanel">
+        <p class="eyebrow">Experiment Report</p>
+        <h2>Report Preview</h2>
+        <div id="reportPlaceholder" class="placeholder">
+          Submit the form to see your structured experiment report here. The full simulation report will be attached automatically when available.
+        </div>
+        <div id="reportContent" class="report-content hidden"></div>
+        <div class="panel hidden" id="historyPanel" style="margin-top:14px;">
+          <h3 style="margin:0 0 8px;">Recent Reports (this email)</h3>
+          <ul id="historyList" class="history-list"></ul>
+        </div>
+        <div class="actions" style="margin-top:10px;">
+          <button type="button" id="downloadPdfBtn" class="btn-primary">Download Report PDF</button>
+          <button type="button" id="exportDataBtn" class="btn-ghost">Export Saved Data (JSON)</button>
+          <button type="button" id="importDataBtn" class="btn-ghost">Import Saved Data</button>
+          <input type="file" id="importFile" accept="application/json" style="display:none;">
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="progressreport.js" defer></script>
+
+</body>
+</html>
