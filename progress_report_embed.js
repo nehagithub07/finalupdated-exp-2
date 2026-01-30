@@ -155,6 +155,7 @@
     links.forEach((link) => {
       link.removeAttribute('target');
       link.setAttribute('target', '_self');
+      link.setAttribute('rel', 'noopener');
     });
   }
 

@@ -548,6 +548,12 @@
   </audio>
 </body>
 
+<script src="../progress_tracker.js"></script>
+<script>
+  if (window.VLProgress && typeof window.VLProgress.initPage === "function") {
+    window.VLProgress.initPage();
+  }
+</script>
 <script src="../tracking.js"></script>
 <script src="../script/script.js"></script>
 </html>

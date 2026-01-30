@@ -6,6 +6,18 @@
   <title>Progress Report</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+    integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
   <link rel="stylesheet" href="./alert-theme.css">
 
   <style>
@@ -549,9 +561,13 @@
     }
 
     // Buttons
-    document.getElementById("printBtn")?.addEventListener("click", () => window.print());
-    document.getElementById("downloadBtn")?.addEventListener("click", downloadReport);
-    document.getElementById("resetBtn")?.addEventListener("click", () => {
+    const printBtn = document.getElementById("printBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    printBtn?.addEventListener("click", () => window.print());
+    downloadBtn?.addEventListener("click", downloadReport);
+    resetBtn?.addEventListener("click", () => {
       showReportAlert("Reset all saved user data, assessments, timings, and simulation report?", "Confirm Reset", {
         mode: "confirm",
         onYes: () => {
@@ -561,17 +577,47 @@
       });
     });
 
-    function downloadReport() {
+    async function downloadReport() {
+      if (!contentEl) {
+        showReportAlert("Report is not ready yet. Please reload and try again.", "Download Failed");
+        return;
+      }
+
+      const jsPDF = window.jspdf?.jsPDF;
+      if (typeof jsPDF !== "function") {
+        showReportAlert("PDF library missing or blocked. Use the Print button instead.", "Download Failed");
+        return;
+      }
+
+      const btn = downloadBtn;
+      const originalLabel = btn?.textContent;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Preparing PDF…";
+      }
+
       try {
-        const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "progress-report.html";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      } catch {
-        showReportAlert("Unable to download. Use Print or save the page manually.", "Download Failed");
+        const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+        await pdf.html(contentEl, {
+          x: 18,
+          y: 18,
+          html2canvas: {
+            scale: Math.min(2, window.devicePixelRatio || 1.5),
+            useCORS: true,
+            allowTaint: true
+          },
+          callback(doc) {
+            doc.save("progress-report.pdf");
+          }
+        });
+      } catch (error) {
+        console.error("Progress report PDF export failed", error);
+        showReportAlert("Unable to create the PDF. Please try again or use Print.", "Download Failed");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+        }
       }
     }
 
