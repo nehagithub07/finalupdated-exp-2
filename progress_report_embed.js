@@ -23,25 +23,32 @@
     link.href = './alert-theme.css';
     head.appendChild(link);
   }
-  const progressSectionTemplate = `
-    <div class="border-l-4 border-orange-600 pl-4 mb-4 flex items-center justify-between">
-      <div class="flex items-center">
-        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-          Progress Report
-        </h2>
+  function getReportLabel() {
+    const page = getPageName();
+    return page === "simulation.html" ? "Simulation Report" : "Progress Report";
+  }
+
+  function getProgressSectionTemplate(label) {
+    return `
+      <div class="border-l-4 border-orange-600 pl-4 mb-4 flex items-center justify-between">
+        <div class="flex items-center">
+          <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+            ${label}
+          </h2>
+        </div>
+        <span class="text-sm text-gray-600">Embedded view (opens within this page)</span>
       </div>
-      <span class="text-sm text-gray-600">Embedded view (opens within this page)</span>
-    </div>
-    <div class="w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner">
-      <iframe
-        src="progressreport.html"
-        title="Progress Report"
-        class="w-full"
-        style="min-height: 900px;"
-        loading="lazy"
-      ></iframe>
-    </div>
-  `;
+      <div class="w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+        <iframe
+          src="progressreport.html"
+          title="${label}"
+          class="w-full"
+          style="min-height: 900px;"
+          loading="lazy"
+        ></iframe>
+      </div>
+    `;
+  }
 
   const modalsMarkup = `
     <div id="userFormPrompt"
@@ -84,13 +91,15 @@
     </div>
   `;
 
-  const progressNavTemplate = `
-    <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-    </svg>
-    Progress report
-  `;
+  function getProgressNavTemplate(label) {
+    return `
+      <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+      </svg>
+      ${label}
+    `;
+  }
 
   function getPageName() {
     const segments = window.location.pathname.split('/');
@@ -104,7 +113,7 @@
     const section = document.createElement('section');
     section.id = 'progressreport';
     section.className = 'section-content vl-card mb-8 p-6 animate-fadeInUp';
-    section.innerHTML = progressSectionTemplate;
+    section.innerHTML = getProgressSectionTemplate(getReportLabel());
     main.appendChild(section);
   }
 
@@ -112,6 +121,7 @@
     const navContainer = document.querySelector('#sidebar nav, .vl-sidebar nav');
     if (!navContainer) return null;
     let anchor = document.getElementById('progressReportNav');
+    const label = getReportLabel();
     if (!anchor) {
       anchor = navContainer.querySelector('[data-progress-report-link]') ||
                navContainer.querySelector('a[href*="progressreport"]');
@@ -121,6 +131,7 @@
       if (!anchor.id) anchor.id = 'progressReportNav';
       anchor.href = isAimPage ? '#progressreport' : 'progressreport.html';
       anchor.setAttribute('data-progress-report-link', '');
+      anchor.innerHTML = getProgressNavTemplate(label);
       return anchor;
     }
 
@@ -129,7 +140,7 @@
     anchor.href = isAimPage ? '#progressreport' : 'progressreport.html';
     anchor.className = 'menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group';
     anchor.setAttribute('data-progress-report-link', '');
-    anchor.innerHTML = progressNavTemplate;
+    anchor.innerHTML = getProgressNavTemplate(label);
     navContainer.appendChild(anchor);
     return anchor;
   }
@@ -137,6 +148,14 @@
   function ensureModals() {
     if (document.getElementById('userFormPrompt')) return;
     document.body.insertAdjacentHTML('beforeend', modalsMarkup);
+  }
+
+  function retargetProgressLinks(root = document) {
+    const links = root.querySelectorAll('a[href*="progressreport"]');
+    links.forEach((link) => {
+      link.removeAttribute('target');
+      link.setAttribute('target', '_self');
+    });
   }
 
   function markHeaderProgressLinks(isAimPage) {
@@ -155,11 +174,34 @@
   }
 
   function forceSameTabProgressLinks() {
-    const links = document.querySelectorAll('a[href*="progressreport"]');
-    links.forEach((link) => {
-      link.removeAttribute('target');
-      link.setAttribute('target', '_self');
+    retargetProgressLinks();
+    // keep any future links in same tab (covers nav injected after script load)
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          retargetProgressLinks(node);
+        });
+      }
     });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // hard enforce same-tab navigation on click (safety net) without blocking other handlers
+    document.addEventListener('click', (event) => {
+      const anchor = event.target.closest('a');
+      if (!anchor) return;
+      const href = (anchor.getAttribute('href') || '').toLowerCase();
+      const isProgress =
+        href.includes('progressreport') ||
+        href === '#progressreport' ||
+        href.endsWith('#progressreport');
+      if (!isProgress) return;
+      try {
+        anchor.removeAttribute('target');
+        anchor.setAttribute('target', '_self');
+      } catch {}
+      // let existing listeners (alerts, modals) run normally
+    }, true);
   }
 
   function setActiveMenu() {
@@ -338,6 +380,7 @@
     if (!hasSharedModal) {
       userInputLinks.forEach((link) => {
         link.addEventListener('click', (event) => {
+          if (VP().hasUser()) return; // allow normal behavior when details already filled
           event.preventDefault();
           event.stopPropagation();
           const targetReturn = link.dataset.redirectReturn || pageName;
@@ -386,9 +429,8 @@
       event.stopImmediatePropagation();
 
       showAimAlert(
-        'To view the progress report, you must first fill in all your details in the user form.',
-        'Notice',
-        () => openUserInputModal(progressReturnUrl)
+        'You have to first fill the user details then you can generate the report.',
+        'Notice'
       );
     };
 
@@ -421,9 +463,8 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       showAimAlert(
-        'To view the progress report, you must first fill in all your details in the user form.',
-        'Notice',
-        () => openUserInputModal(progressReturnUrl)
+        'You have to first fill the user details then you can generate the report.',
+        'Notice'
       );
     }, true);
 
@@ -433,9 +474,8 @@
 
     if (isAimPage && window.location.hash === '#progressreport' && !VP().hasUser()) {
       showAimAlert(
-        'To view the progress report, you must first fill in all your details in the user form.',
-        'Notice',
-        () => openUserInputModal(progressReturnUrl)
+        'You have to first fill the user details then you can generate the report.',
+        'Notice'
       );
     }
 
@@ -511,17 +551,6 @@
       }
     });
 
-    setTimeout(() => {
-      if (document.body.classList.contains('body-blurred')) return;
-      const hasSeenIntroBefore = typeof window.hasIntroBeenShown === 'function'
-        ? window.hasIntroBeenShown()
-        : true;
-      if (!hasSeenIntroBefore) return;
-      const state = VP().getState();
-      if (!VP().hasUser() && !(state.flags && state.flags.reportDeclined)) {
-        window.maybePromptUserForm();
-      }
-    }, 700);
   }
 
   // Run ASAP (script is included at the end of pages), but keep a DOMContentLoaded

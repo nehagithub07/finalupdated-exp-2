@@ -145,7 +145,12 @@
 
         <nav class="top-nav hidden lg:flex items-center gap-2 lg:gap-3">
           <a href="../../main.html" class="nav-link">Home</a>
-          <a href="user_input.html?return=progressreport.html" class="nav-link">User Input</a>
+          <a href="user_input.html?return=progressreport.html" class="nav-link nav-user-link" data-user-input-link data-redirect-return="progressreport.html">
+            <span class="nav-user-pill">
+              <span class="nav-user-avatar" aria-hidden="true" data-user-avatar>UI</span>
+              <span class="nav-user-text" data-user-text>User Input</span>
+            </span>
+          </a>
           <a href="progressreport.html" class="nav-link">Progress Report</a>
         </nav>
       </div>
@@ -157,7 +162,7 @@
       <p class="text-lg font-semibold text-slate-900">Progress report locked</p>
       <p class="text-sm text-slate-600">Complete the user input form before viewing your saved report.</p>
       <button id="reportLockedCTA" type="button"
-        class="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/40 hover:brightness-110">
+        class="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/40 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">
         Open user form
       </button>
     </div>
@@ -171,9 +176,9 @@
         <p class="text-slate-600 mt-1">User details, session duration, assessments, and simulation report.</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button id="printBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold hover:bg-black shadow-md">Print</button>
-        <button id="downloadBtn" class="px-4 py-2 rounded-lg bg-slate-700 text-white font-semibold hover:bg-slate-800 shadow-md">Download</button>
-        <button id="resetBtn" class="px-4 py-2 rounded-lg border border-slate-300 font-semibold text-slate-700 bg-white hover:bg-slate-100 shadow-sm">Reset Data</button>
+        <button id="printBtn" class="px-4 py-2 rounded-lg font-semibold text-white shadow-md shadow-slate-900/30 bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Print</button>
+        <button id="downloadBtn" class="px-4 py-2 rounded-lg font-semibold text-white shadow-md shadow-slate-900/25 bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Download</button>
+        <button id="resetBtn" class="px-4 py-2 rounded-lg font-semibold border border-[#0b60a8] text-[#0b60a8] bg-white hover:bg-slate-50 hover:border-[#064073] shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Reset Data</button>
       </div>
     </div>
 
@@ -207,6 +212,7 @@
 
   <!-- MUST load tracker BEFORE inline script -->
   <script src="./progress_tracker.js"></script>
+  <script src="./user_input_modal.js"></script>
 
   <script>
   (() => {
@@ -304,6 +310,11 @@
     });
 
     function redirectToUserInputForm(returnUrl = "aim.html") {
+      const modalOpen = window.VLUserInputModal?.open;
+      if (typeof modalOpen === "function") {
+        modalOpen(returnUrl);
+        return;
+      }
       const params = new URLSearchParams({ return: returnUrl }).toString();
       const target = `user_input.html?${params}`;
       try {
@@ -336,9 +347,8 @@
       setReportContainerVisible(false);
       setReportLockedVisible(true);
       showReportAlert(
-        "To view the progress report, you must first fill in all your details in the user form.",
-        "Notice",
-        () => redirectToUserInputForm("progressreport.html")
+        "You have to first fill the user details then you can generate the report.",
+        "Notice"
       );
       return;
     }

@@ -2085,8 +2085,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
 </body>
 </html>`;
 
-    const stamp = String(Date.now());
     try {
+      const stamp = String(Date.now());
       localStorage.setItem("vlab_exp2_simulation_report_html", html);
       localStorage.setItem("vlab_exp2_simulation_report_updated_at", stamp);
       const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
@@ -2096,8 +2096,41 @@ tr:nth-child(even) { background-color: #f8fbff; }
       }
     } catch (e) {}
 
-    const progressReportUrl = new URL("../../progressreport.html", window.location.href);
-    window.location.href = progressReportUrl.href;
+    const reportWindow = window.open("", "report");
+    if (!reportWindow) {
+      speakOrAlert("Please allow pop-ups to view the report.");
+      return;
+    }
+
+      try {
+        reportWindow.document.open("text/html", "replace");
+        reportWindow.document.write(html);
+        reportWindow.document.close();
+        reportWindow.focus();
+        showPopup(
+          "Report generated. You can now print it or reset the experiment.",
+          "Report Ready"
+        );
+        speak(
+          "Report opened in a new tab. You can print it from the report window, or use Reset to start again."
+        );
+      } catch (err) {
+        try {
+          const blob = new Blob([html], { type: "text/html" });
+          const url = URL.createObjectURL(blob);
+          reportWindow.location = url;
+          showPopup(
+            "Report generated. You can now print it or reset the experiment.",
+            "Report Ready"
+          );
+          setTimeout(function () {
+            URL.revokeObjectURL(url);
+          }, 5000);
+      } catch (err2) {
+        console.error("Report generation failed:", err2);
+        speakOrAlert("Unable to render the report. Please disable popup blockers and try again.");
+      }
+    }
   }
 
   function addRowToTable(idx) {

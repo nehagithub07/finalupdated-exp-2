@@ -180,6 +180,9 @@
       transition: color 150ms ease, transform 150ms ease;
       border-radius: 0.375rem;
       text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .nav-link::after {
@@ -205,6 +208,52 @@
 
     .nav-link:hover::after,
     .nav-link:focus::after { transform: scaleX(1); }
+
+    .nav-user-link { padding: 0; background: transparent; }
+    .nav-user-link::after { display: none; }
+    .nav-user-link:hover,
+    .nav-user-link:focus { background: transparent; transform: none; color: inherit; }
+
+    .nav-user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.35rem 0.85rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      box-shadow: 0 8px 22px rgba(2, 26, 44, 0.35);
+      transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    }
+
+    .nav-user-link:hover .nav-user-pill,
+    .nav-user-link:focus .nav-user-pill {
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 10px 26px rgba(2, 26, 44, 0.45);
+      transform: translateY(-1px);
+    }
+
+    .nav-user-avatar {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0b60a8, #021a2c);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18), 0 8px 16px rgba(2, 26, 44, 0.25);
+      text-transform: uppercase;
+    }
+
+    .nav-user-text { color: #e2e8f0; font-weight: 700; }
+
+    .nav-user-link-active .nav-user-pill {
+      border-color: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 10px 28px rgba(2, 26, 44, 0.5);
+    }
 
     .logo-container { display: flex; align-items: center; gap: 0.75rem; }
 
@@ -1163,8 +1212,12 @@
 
           <nav class="top-nav hidden lg:flex items-center gap-2 lg:gap-3">
             <a href="../../main.html" class="nav-link">Home</a>
-            <a href="user_input.html?return=aim.html" class="nav-link" data-user-input-link data-redirect-return="aim.html">User Input</a>
-           
+            <a href="user_input.html?return=aim.html" class="nav-link nav-user-link" data-user-input-link data-redirect-return="aim.html">
+              <span class="nav-user-pill">
+                <span class="nav-user-avatar" aria-hidden="true" data-user-avatar>UI</span>
+                <span class="nav-user-text" data-user-text>User Input</span>
+              </span>
+            </a>
           </nav>
         </div>
       </div>
@@ -2489,8 +2542,21 @@
 </div>
 <div id="userInputModal" class="hidden fixed inset-0 z-[100000] bg-black/60 px-4 py-8 items-center justify-center">
   <div class="relative w-full max-w-4xl h-[85vh] bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-200">
-    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-      <h3 class="text-lg font-semibold text-slate-900">User Input Form</h3>
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-gradient-to-r from-[#f8fbff] to-[#eef5ff]">
+      <div class="flex items-center gap-3">
+        <div id="userInputModalAvatar"
+             class="h-11 w-11 rounded-full bg-gradient-to-br from-[#021a2c] to-[#0b60a8] text-white font-extrabold flex items-center justify-center shadow-md ring-2 ring-white/80"
+             aria-hidden="true">
+          U
+        </div>
+        <div class="leading-tight">
+          <p class="text-[11px] uppercase tracking-[0.12em] text-slate-500 font-semibold">User badge</p>
+          <div class="flex items-center gap-2">
+            <span id="userInputModalName" class="text-base font-bold text-slate-900">User Input Form</span>
+            <span id="userInputModalDesignation" class="hidden text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-900/5 text-slate-700 border border-slate-200"></span>
+          </div>
+        </div>
+      </div>
       <button id="userInputModalClose" type="button" class="text-slate-600 hover:text-slate-900 rounded-full focus:outline-none">
         <span aria-hidden="true" class="text-2xl leading-none">&times;</span>
         <span class="sr-only">Close</span>
@@ -2551,14 +2617,18 @@
   const userInputIframe = document.getElementById("userInputIframe");
   const userInputModalClose = document.getElementById("userInputModalClose");
   const userInputNavLink = document.querySelector("[data-user-input-link]");
+  const userInputNavAvatar = userInputNavLink?.querySelector("[data-user-avatar]");
+  const userInputNavText = userInputNavLink?.querySelector("[data-user-text]");
+  const userInputModalAvatar = document.getElementById("userInputModalAvatar");
+  const userInputModalName = document.getElementById("userInputModalName");
+  const userInputModalDesignation = document.getElementById("userInputModalDesignation");
   const aimAlertModal = document.getElementById("aimAlertModal");
   const aimAlertTitle = document.getElementById("aimAlertTitle");
   const aimAlertMessage = document.getElementById("aimAlertMessage");
   const aimAlertClose = aimAlertModal?.querySelector("[data-aim-alert-close]");
   let aimAlertOnClose = null;
 
-  const defaultUserInputNavLabel =
-    (userInputNavLink?.textContent || "User Input").trim() || "User Input";
+  const defaultUserInputNavLabel = "User Input";
 
   function getFirstName(fullName) {
     if (!fullName || typeof fullName !== "string") return "";
@@ -2567,23 +2637,85 @@
     return trimmed.split(/\s+/)[0];
   }
 
+  function pickUserColors(seed) {
+    const palettes = [
+      ["#0b60a8", "#021a2c"],
+      ["#2563eb", "#0b60a8"],
+      ["#0ea5e9", "#0369a1"],
+      ["#22c55e", "#14532d"],
+      ["#f97316", "#c2410c"]
+    ];
+    const key = (seed || "user").toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) & 0xffffffff;
+    }
+    const idx = Math.abs(hash) % palettes.length;
+    return palettes[idx];
+  }
+
+  function paintAvatar(el, seed, fallbackInitial = "U") {
+    if (!el) return;
+    const [c1, c2] = pickUserColors(seed);
+    const initial = (seed && seed[0] ? seed[0] : fallbackInitial).toUpperCase();
+    el.textContent = initial;
+    el.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+  }
+
+  function refreshUserInputModalBadge(firstName, designation) {
+    if (userInputModalName) {
+      userInputModalName.textContent = firstName || "User Input Form";
+    }
+    if (userInputModalAvatar) {
+      paintAvatar(userInputModalAvatar, firstName || "User");
+    }
+    if (userInputModalDesignation) {
+      if (designation) {
+        userInputModalDesignation.textContent = designation;
+        userInputModalDesignation.classList.remove("hidden");
+      } else {
+        userInputModalDesignation.textContent = "";
+        userInputModalDesignation.classList.add("hidden");
+      }
+    }
+  }
+
   function refreshUserInputNavLabel() {
-    if (!userInputNavLink) return;
     const state = VLProgress.getState();
     const firstName = getFirstName(state.user?.name);
-    if (firstName) {
-      userInputNavLink.textContent = firstName;
-      if (state.user?.name) {
-        userInputNavLink.setAttribute("title", state.user.name);
-      }
-      return;
+    const designation = (state.user?.designation || "").trim();
+
+    if (userInputNavText) {
+      userInputNavText.textContent = firstName || defaultUserInputNavLabel;
+    } else if (userInputNavLink) {
+      userInputNavLink.textContent = firstName || defaultUserInputNavLabel;
     }
-    userInputNavLink.textContent = defaultUserInputNavLabel;
-    userInputNavLink.removeAttribute("title");
+
+    if (userInputNavAvatar) {
+      if (firstName) {
+        paintAvatar(userInputNavAvatar, firstName, "U");
+      } else {
+        userInputNavAvatar.textContent = "UI";
+        userInputNavAvatar.style.background = "linear-gradient(135deg, #94a3b8, #475569)";
+      }
+    }
+
+    if (userInputNavLink) {
+      if (firstName) {
+        userInputNavLink.setAttribute("title", state.user?.name || firstName);
+        userInputNavLink.classList.add("nav-user-link-active");
+      } else {
+        userInputNavLink.removeAttribute("title");
+        userInputNavLink.classList.remove("nav-user-link-active");
+      }
+    }
+
+    refreshUserInputModalBadge(firstName, designation);
   }
 
   function openUserInputModal(returnUrl = "aim.html") {
     if (!userInputModal || !userInputIframe) return;
+    refreshUserInputNavLabel();
     const params = new URLSearchParams();
     if (returnUrl) params.set("return", returnUrl);
     userInputIframe.src = `user_input.html${params.toString() ? `?${params}` : ""}`;
@@ -2655,6 +2787,7 @@
 
   if (userInputNavLink) {
     userInputNavLink.addEventListener("click", (event) => {
+      if (VLProgress.hasUser()) return; // already filled; let it behave as normal link (no modal)
       event.preventDefault();
       openUserInputModal(userInputNavLink.dataset.redirectReturn || "aim.html");
     });
@@ -2664,7 +2797,8 @@
 
   window.addEventListener("message", (event) => {
     const allowedOrigin = window.location.origin;
-    if (allowedOrigin !== "null" && event.origin !== allowedOrigin) return;
+    const fromNullOrigin = event.origin === "null";
+    if (allowedOrigin !== "null" && event.origin !== allowedOrigin && !fromNullOrigin) return;
     const data = event.data;
     if (!data || !data.type) return;
 
@@ -2712,6 +2846,13 @@
   });
 
   const progressReportLinks = Array.from(document.querySelectorAll("[data-progress-report-link]"));
+
+  // Make sure Progress Report never opens in a new tab/window
+  const allProgressReportLinks = Array.from(document.querySelectorAll('a[href*="progressreport"]'));
+  [...new Set([...progressReportLinks, ...allProgressReportLinks])].forEach((link) => {
+    link.removeAttribute("target");
+    link.setAttribute("target", "_self");
+  });
 
   function disableProgressReportUI() {
     progressReportLinks.forEach((link) => {
@@ -2765,9 +2906,8 @@
       e.stopImmediatePropagation();
 
       showAimAlert(
-        "To view the progress report, you must first fill in all your details in the user form.",
-        "Notice",
-        () => openUserInputModal("aim.html#progressreport")
+        "You have to first fill the user details then you can generate the report.",
+        "Notice"
       );
     }, true);
   });
@@ -2787,33 +2927,20 @@
     event.preventDefault();
     event.stopImmediatePropagation();
     showAimAlert(
-      "To view the progress report, you must first fill in all your details in the user form.",
-      "Notice",
-      () => openUserInputModal("aim.html#progressreport")
+      "You have to first fill the user details then you can generate the report.",
+      "Notice"
     );
   }, true);
 
   // If user loads aim.html#progressreport directly without user form
   if (window.location.hash === "#progressreport" && !VLProgress.hasUser()) {
     showAimAlert(
-      "To view the progress report, you must first fill in all your details in the user form.",
-      "Notice",
-      () => openUserInputModal("aim.html#progressreport")
+      "You have to first fill the user details then you can generate the report.",
+      "Notice"
     );
   }
 
   // If intro is not shown (already shown earlier), still prompt on load (optional but useful)
-  setTimeout(() => {
-    if (document.body.classList.contains('body-blurred')) return;
-    const hasSeenIntroBefore = typeof window.hasIntroBeenShown === "function"
-      ? window.hasIntroBeenShown()
-      : true;
-    if (!hasSeenIntroBefore) return;
-    const st = VLProgress.getState();
-    if (!VLProgress.hasUser() && !(st.flags && st.flags.reportDeclined)) {
-      window.maybePromptUserForm();
-    }
-  }, 700);
 })();
 </script>
 
