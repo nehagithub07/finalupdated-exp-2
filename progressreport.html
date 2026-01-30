@@ -4,9 +4,123 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Progress Report</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="./alert-theme.css">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    body { font-family: 'Inter', sans-serif; }
+
+    .vl-header {
+      height: 70px;
+      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
+      box-shadow: 0 10px 30px rgba(2, 26, 44, 0.35);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+    }
+    .top-nav { gap: 1.5rem; align-items: center; }
+    .nav-link {
+      position: relative;
+      color: #e2e8f0;
+      font-weight: 600;
+      padding: 0.5rem 1rem;
+      transition: color 150ms ease, transform 150ms ease;
+      border-radius: 0.375rem;
+      text-decoration: none;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -6px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform 200ms ease;
+    }
+    .nav-link:hover,.nav-link:focus {
+      color: #fff;
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .nav-link:hover::after,.nav-link:focus::after { transform: scaleX(1); }
+
+    .logo-container { display:flex; align-items:center; gap:.75rem; }
+    .logo-glow { transition: transform 200ms ease, box-shadow 200ms ease; }
+    .logo-glow:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(11, 96, 168, 0.5); }
+    .logo-text { display:flex; flex-direction:column; justify-content:center; }
+    .logo-title { color:#fff; font-size:1.25rem; font-weight:700; line-height:1.2; margin:0; }
+    .logo-subtitle { color:#bfdbfe; font-size:.875rem; font-weight:500; margin:0; }
+
+    .vl-footer {
+      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
+      color: #e2e8f0;
+      padding: 1.25rem 0;
+      box-shadow: 0 -10px 30px rgba(2, 26, 44, 0.5);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      z-index: 50;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 48px;
+    }
+    .footer-inner { max-width:1200px; margin:0 auto; text-align:center; padding:0 1.5rem; }
+
+    /* Embedded (inside iframe) -> hide header/footer */
+    .embedded .vl-header, .embedded .vl-footer { display:none !important; }
+    .embedded #report-container { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+    /* Minimal fallback modal styling (if alert-theme.css missing) */
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99999; padding:16px; }
+    .modal.show { display:flex; align-items:center; justify-content:center; }
+    .modal-box {
+      width: 100%;
+      max-width: 520px;
+      background:#fff;
+      border-radius: 18px;
+      border: 1px solid #e2e8f0;
+      padding: 18px;
+      box-shadow: 0 25px 60px rgba(0,0,0,.25);
+    }
+    .modal-box.danger { border-color:#fecaca; }
+    .modal-box h2 { font-size: 18px; font-weight: 800; margin:0 0 8px; color:#0f172a; }
+    .modal-box p { margin:0 0 14px; color:#334155; }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; }
+    .modal-close-btn {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: 1px solid #e2e8f0;
+      background: #0f172a;
+      color: #fff;
+    }
+    .modal-secondary-btn { background:#fff; color:#0f172a; }
+    .is-modal-open { overflow:hidden; }
+
+    @media print {
+      header, footer, #printBtn, #downloadBtn, #resetBtn { display:none !important; }
+      body { background:#fff !important; }
+      .pt-24 { padding-top:0 !important; }
+    }
+  </style>
+
+  <script>
+    (function () {
+      try { if (window.top !== window.self) document.documentElement.classList.add('embedded'); } catch {}
+    })();
+  </script>
 </head>
+
 <body class="min-h-screen bg-slate-50">
   <header class="vl-header shadow-xl fixed top-0 left-0 right-0 z-50">
     <div class="header-inner px-4 sm:px-6 lg:px-8">
@@ -16,19 +130,14 @@
             src="./images/image.png"
             alt="Virtual Labs Logo"
             class="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-xl object-contain bg-white p-1.5 logo-glow"
-            onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%233b82f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22 font-weight=%22bold%22%3EVL%3C/text%3E%3C/svg%3E'"
-          >
+            onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%233b82f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22 font-weight=%22bold%22%3EVL%3C/text%3E%3C/svg%3E'">
           <div class="logo-text">
             <h1 class="logo-title text-base sm:text-lg lg:text-xl">Virtual Labs</h1>
             <p class="logo-subtitle text-[10px] sm:text-xs lg:text-sm">IIT Roorkee</p>
           </div>
         </a>
 
-        <button
-          id="mobile-menu-toggle"
-          class="lg:hidden text-white p-2 menu-button"
-          aria-label="Toggle menu"
-        >
+        <button id="mobile-menu-toggle" class="lg:hidden text-white p-2 menu-button" aria-label="Toggle menu">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
@@ -36,20 +145,30 @@
 
         <nav class="top-nav hidden lg:flex items-center gap-2 lg:gap-3">
           <a href="../../main.html" class="nav-link">Home</a>
-          <a href="user_input.html?return=progressreport.html" class="nav-link" data-user-input-link data-redirect-return="progressreport.html">User Input</a>
+          <a href="user_input.html?return=progressreport.html" class="nav-link">User Input</a>
           <a href="progressreport.html" class="nav-link">Progress Report</a>
         </nav>
       </div>
     </div>
   </header>
-  <script src="./progress_tracker.js"></script>
 
-  <div class="max-w-5xl mx-auto px-4 py-12 pt-24">
+  <div id="reportLockedNotice" class="max-w-4xl mx-auto px-4 py-12 hidden">
+    <div class="bg-white/90 rounded-2xl shadow-lg border border-slate-200 p-6 text-center space-y-4">
+      <p class="text-lg font-semibold text-slate-900">Progress report locked</p>
+      <p class="text-sm text-slate-600">Complete the user input form before viewing your saved report.</p>
+      <button id="reportLockedCTA" type="button"
+        class="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/40 hover:brightness-110">
+        Open user form
+      </button>
+    </div>
+  </div>
+
+  <div id="report-container" class="max-w-5xl mx-auto px-4 py-12 pt-24 pb-24">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div>
         <p class="text-sm uppercase tracking-[0.2em] text-slate-500 font-semibold">Session Summary</p>
         <h1 class="text-3xl font-bold text-slate-900">Progress Report</h1>
-        <p class="text-slate-600 mt-1">Snapshot of your saved user details, timing, and assessment scores.</p>
+        <p class="text-slate-600 mt-1">User details, session duration, assessments, and simulation report.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button id="printBtn" class="px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold hover:bg-black shadow-md">Print</button>
@@ -61,19 +180,36 @@
     <div id="content" class="space-y-6"></div>
   </div>
 
+  <footer class="vl-footer" role="contentinfo">
+    <div class="footer-inner flex items-center justify-center h-full px-4">
+      <p class="text-xs md:text-sm text-center text-sky-100 font-medium tracking-wide">
+        &copy; 2026 Virtual Labs IIT Roorkee
+      </p>
+    </div>
+  </footer>
+
+  <!-- Modal -->
   <div id="reportAlertModal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="reportAlertTitle" aria-describedby="reportAlertMessage">
     <div class="modal-box danger" role="document">
       <h2 id="reportAlertTitle">Alert</h2>
       <p id="reportAlertMessage"></p>
+
       <div class="modal-actions" data-report-alert-actions hidden>
         <button type="button" class="modal-close-btn" data-report-alert-yes>Yes</button>
         <button type="button" class="modal-close-btn modal-secondary-btn" data-report-alert-no>No</button>
       </div>
-      <button type="button" class="modal-close-btn" data-report-alert-close>OK</button>
+
+      <div class="modal-actions">
+        <button type="button" class="modal-close-btn" data-report-alert-close>OK</button>
+      </div>
     </div>
   </div>
 
+  <!-- MUST load tracker BEFORE inline script -->
+  <script src="./progress_tracker.js"></script>
+
   <script>
+  (() => {
     const reportAlertModal = document.getElementById("reportAlertModal");
     const reportAlertTitle = document.getElementById("reportAlertTitle");
     const reportAlertMessage = document.getElementById("reportAlertMessage");
@@ -81,21 +217,41 @@
     const reportAlertActions = reportAlertModal?.querySelector("[data-report-alert-actions]");
     const reportAlertYes = reportAlertModal?.querySelector("[data-report-alert-yes]");
     const reportAlertNo = reportAlertModal?.querySelector("[data-report-alert-no]");
+
     let reportAlertOnClose = null;
     let reportAlertOnYes = null;
     let reportAlertOnNo = null;
     let reportAlertMode = "alert";
 
+    const reportContainer = document.getElementById("report-container");
+    const reportLockedNotice = document.getElementById("reportLockedNotice");
+    const reportLockedCTA = document.getElementById("reportLockedCTA");
+    const contentEl = document.getElementById("content");
+
+    function setReportContainerVisible(visible) {
+      if (!reportContainer) return;
+      reportContainer.style.display = visible ? "" : "none";
+    }
+
+    function setReportLockedVisible(visible) {
+      if (!reportLockedNotice) return;
+      reportLockedNotice.classList.toggle("hidden", !visible);
+      if (visible) {
+        reportLockedNotice.scrollIntoView({ behavior: "smooth" });
+        if (reportContainer) reportContainer.style.display = "none";
+      }
+    }
+
     function showReportAlert(message, title = "Alert", options = {}) {
       const opts = typeof options === "function" ? { onClose: options } : (options || {});
-
       if (!reportAlertModal) {
         alert(message);
         if (typeof opts.onClose === "function") opts.onClose();
         return;
       }
-      if (reportAlertTitle) reportAlertTitle.textContent = title;
-      if (reportAlertMessage) reportAlertMessage.textContent = message;
+      reportAlertTitle.textContent = title;
+      reportAlertMessage.textContent = message;
+
       reportAlertOnClose = typeof opts.onClose === "function" ? opts.onClose : null;
       reportAlertOnYes = typeof opts.onYes === "function" ? opts.onYes : null;
       reportAlertOnNo = typeof opts.onNo === "function" ? opts.onNo : null;
@@ -103,24 +259,26 @@
 
       if (reportAlertActions) reportAlertActions.hidden = reportAlertMode !== "confirm";
       if (reportAlertClose) reportAlertClose.classList.toggle("hidden", reportAlertMode === "confirm");
-      if (reportAlertMode === "confirm") {
-        setTimeout(() => reportAlertYes?.focus?.(), 0);
-      } else {
-        setTimeout(() => reportAlertClose?.focus?.(), 0);
-      }
 
       reportAlertModal.classList.add("show");
       document.body.classList.add("is-modal-open");
+
+      setTimeout(() => {
+        if (reportAlertMode === "confirm") reportAlertYes?.focus?.();
+        else reportAlertClose?.focus?.();
+      }, 0);
     }
 
     function closeReportAlert(action = "close") {
       if (!reportAlertModal) return;
       reportAlertModal.classList.remove("show");
       document.body.classList.remove("is-modal-open");
+
       const mode = reportAlertMode;
       const onClose = reportAlertOnClose;
       const onYes = reportAlertOnYes;
       const onNo = reportAlertOnNo;
+
       reportAlertOnClose = null;
       reportAlertOnYes = null;
       reportAlertOnNo = null;
@@ -129,67 +287,54 @@
       if (mode === "confirm") {
         if (action === "yes" && onYes) onYes();
         if (action === "no" && onNo) onNo();
-      } else if (onClose) {
-        onClose();
+      } else {
+        if (onClose) onClose();
       }
     }
 
-    if (reportAlertClose) {
-      reportAlertClose.addEventListener("click", closeReportAlert);
-    }
-    if (reportAlertYes) {
-      reportAlertYes.addEventListener("click", () => closeReportAlert("yes"));
-    }
-    if (reportAlertNo) {
-      reportAlertNo.addEventListener("click", () => closeReportAlert("no"));
-    }
+    reportAlertClose?.addEventListener("click", () => closeReportAlert());
+    reportAlertYes?.addEventListener("click", () => closeReportAlert("yes"));
+    reportAlertNo?.addEventListener("click", () => closeReportAlert("no"));
 
     reportAlertModal?.addEventListener("click", (event) => {
       if (event.target === reportAlertModal) closeReportAlert();
     });
-
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && reportAlertModal?.classList.contains("show")) {
-        closeReportAlert();
-      }
+      if (event.key === "Escape" && reportAlertModal?.classList.contains("show")) closeReportAlert();
     });
 
     function redirectToUserInputForm(returnUrl = "aim.html") {
       const params = new URLSearchParams({ return: returnUrl }).toString();
       const target = `user_input.html?${params}`;
       try {
-        if (window.top && window.top !== window) {
-          window.top.location.href = target;
-          return;
-        }
-      } catch {
-        // ignore cross-origin errors
-      }
+        if (window.top && window.top !== window) { window.top.location.href = target; return; }
+      } catch {}
       window.location.href = target;
     }
 
     function navigateToAim() {
       try {
-        if (window.top && window.top !== window) {
-          window.top.location.href = "aim.html";
-          return;
-        }
-      } catch {
-        // ignore errors
-      }
+        if (window.top && window.top !== window) { window.top.location.href = "aim.html"; return; }
+      } catch {}
       window.location.href = "aim.html";
     }
 
-    // If user tries direct access without form → alert + redirect
+    // ---- Guard: tracker must exist
     if (!window.VLProgress) {
-      showReportAlert("Progress tracking script missing.");
+      setReportContainerVisible(false);
+      setReportLockedVisible(true);
+      showReportAlert("Progress tracker not loaded. Check ./progress_tracker.js path.", "Error");
       return;
     }
 
+    // ---- Init page + view stamp
     VLProgress.initPage();
     VLProgress.markReportViewed();
 
+    // ---- Lock if no user details
     if (!VLProgress.hasUser()) {
+      setReportContainerVisible(false);
+      setReportLockedVisible(true);
       showReportAlert(
         "To view the progress report, you must first fill in all your details in the user form.",
         "Notice",
@@ -198,27 +343,26 @@
       return;
     }
 
+    setReportContainerVisible(true);
+    setReportLockedVisible(false);
     renderReport();
 
     function renderReport() {
-      const state = VLProgress.getState();
-      const user = state.user;
+      if (!contentEl) return;
 
-      const start = state.timestamps.sessionStart;
-      const end = state.timestamps.reportViewedAt || new Date().toISOString();
+      const state = VLProgress.getState();
+      const user = state.user || {};
+
+      const ts = state.timestamps || {};
+      const start = ts.sessionStart || null;
+      const end = ts.reportViewedAt || new Date().toISOString();
+      const totalMs = start ? (new Date(end).getTime() - new Date(start).getTime()) : 0;
 
       const simulationReport = getSimulationReportData();
       const pretestData = getAssessmentData("pretest");
       const posttestData = getAssessmentData("posttest");
-      const formattedStart = formatTimestamp(start);
-      const formattedEnd = formatTimestamp(end);
-      const startDisplay = formattedStart || start || "-";
-      const endDisplay = formattedEnd || end || "-";
 
-      // total duration (sessionStart -> reportViewedAt)
-      const totalMs = start ? (new Date(end).getTime() - new Date(start).getTime()) : 0;
-
-      const baseSections = `
+      const base = `
         <div class="bg-white/90 rounded-2xl shadow border border-slate-200 p-6 backdrop-blur">
           <div class="flex flex-wrap items-start gap-4 justify-between">
             <div>
@@ -239,14 +383,14 @@
           <div class="bg-white/90 rounded-2xl shadow border border-slate-200 p-6 backdrop-blur">
             <h2 class="text-xl font-bold text-slate-900 mb-3">Start / End</h2>
             <div class="space-y-3 text-slate-700">
-              <div><span class="font-semibold">Session Start:</span> ${startDisplay}</div>
-              <div><span class="font-semibold">Report Viewed:</span> ${endDisplay}</div>
+              <div><span class="font-semibold">Session Start:</span> ${escapeHTML(formatTimestamp(start) || start || "-")}</div>
+              <div><span class="font-semibold">Report Viewed:</span> ${escapeHTML(formatTimestamp(end) || end || "-")}</div>
             </div>
           </div>
           <div class="bg-gradient-to-br from-sky-50 via-white to-slate-50 rounded-2xl shadow border border-slate-200 p-6">
-            <h2 class="text-xl font-bold text-slate-900 mb-3">Elapsed Time</h2>
+            <h2 class="text-xl font-bold text-slate-900 mb-3">Total Duration</h2>
             <p class="text-3xl font-bold text-sky-700">${VLProgress.formatMs(totalMs)}</p>
-            <p class="text-slate-500 text-sm mt-1">Measured from session start to when this report opened.</p>
+            <p class="text-slate-500 text-sm mt-1">Measured from session start → report opened.</p>
           </div>
         </div>
 
@@ -271,50 +415,33 @@
             </table>
           </div>
         </div>
-      `;
 
-      const simulationCard = `
         <div class="bg-white rounded-2xl shadow border border-slate-200 p-6">
           <h2 class="text-xl font-bold text-slate-900 mb-3">Simulation Report</h2>
-          <p id="simulationReportStatus" class="text-sm text-slate-500 mb-2">
-            Simulation report attached below.
-          </p>
+          <p id="simulationReportStatus" class="text-sm text-slate-500 mb-2">---</p>
           <div class="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
-            <iframe
-              id="simulationReportFrame"
-              class="w-full hidden"
-              loading="lazy"
-              style="min-height: 540px; border: none;"
-            ></iframe>
+            <iframe id="simulationReportFrame" class="w-full hidden" loading="lazy" style="min-height:540px; border:none;"></iframe>
           </div>
         </div>
       `;
 
-      const reportHTML = `${baseSections}${simulationCard}`;
-
-      document.getElementById("content").innerHTML = reportHTML;
-
+      contentEl.innerHTML = base;
       renderSimulationReport(simulationReport);
     }
 
     function formatTimestamp(value) {
       if (!value) return null;
-      const candidate = Number(value);
-      const date = Number.isFinite(candidate) && String(value).trim().length
-        ? new Date(candidate)
-        : new Date(value);
-      if (Number.isNaN(date.getTime())) return null;
-      return date.toLocaleString();
+      const n = Number(value);
+      const d = Number.isFinite(n) ? new Date(n) : new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toLocaleString();
     }
 
     function getSimulationReportData() {
-      if (typeof localStorage === "undefined") return null;
       try {
-        const keys = [];
         const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
-        if (activeHash) {
-          keys.push(`vlab_exp2_user_${activeHash}_simulation_report_html`);
-        }
+        const keys = [];
+        if (activeHash) keys.push(`vlab_exp2_user_${activeHash}_simulation_report_html`);
         keys.push("vlab_exp2_simulation_report_html");
 
         for (const key of keys) {
@@ -324,25 +451,24 @@
             return { html, updatedAt };
           }
         }
-      } catch (err) {
-        // localStorage may be locked; ignore silently
-        console.warn("Unable to read simulation report from storage", err);
-      }
+      } catch {}
+
+      try {
+        const PREFIX = "VLAB_EXP2::";
+        if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
+          const data = JSON.parse(window.name.slice(PREFIX.length)) || {};
+          const html = (data["vlab_exp2_simulation_report_html"] || "").toString();
+          if (html && html.trim()) {
+            return { html, updatedAt: data["vlab_exp2_simulation_report_updated_at"] || null };
+          }
+        }
+      } catch {}
+
       return null;
     }
 
     function getAssessmentData(type) {
-      if (typeof localStorage === "undefined") return null;
       try {
-        const readValue = (key) => {
-          try {
-            const value = localStorage.getItem(key);
-            return (value || "").toString().trim() ? value.trim() : null;
-          } catch {
-            return null;
-          }
-        };
-
         const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
         const candidates = [];
 
@@ -353,64 +479,55 @@
             updated: `vlab_exp2_user_${activeHash}_${type}_updated_at`
           });
         }
-
         candidates.push({
           score: `vlab_exp2_${type}_score`,
           total: `vlab_exp2_${type}_total`,
           updated: `vlab_exp2_${type}_updated_at`
         });
 
-        for (const item of candidates) {
-          const score = readValue(item.score);
-          const total = readValue(item.total);
-          const updatedAt = readValue(item.updated);
-          if (score || total || updatedAt) {
-            return { score, total, updatedAt };
-          }
+        for (const c of candidates) {
+          const score = (localStorage.getItem(c.score) || "").trim() || null;
+          const total = (localStorage.getItem(c.total) || "").trim() || null;
+          const updatedAt = (localStorage.getItem(c.updated) || "").trim() || null;
+          if (score || total || updatedAt) return { score, total, updatedAt };
         }
-      } catch (err) {
-        console.warn("Unable to read assessment data from storage", err);
-      }
+      } catch {}
       return null;
     }
 
     function renderSimulationReport(report) {
       const iframe = document.getElementById("simulationReportFrame");
       const status = document.getElementById("simulationReportStatus");
-
       if (!iframe || !status) return;
 
       if (!report || !report.html) {
         iframe.classList.add("hidden");
-        status.textContent = "Run the simulation and click the Report button to attach it here.";
+        status.textContent = "No simulation report found. Run simulation and click Report.";
         return;
       }
 
-      status.textContent = "Simulation report attached below.";
+      const upd = report.updatedAt ? (formatTimestamp(report.updatedAt) || report.updatedAt) : null;
+      status.textContent = upd ? `Simulation report attached (updated: ${upd}).` : "Simulation report attached.";
 
       try {
         iframe.srcdoc = report.html;
         iframe.classList.remove("hidden");
-      } catch (err) {
-        console.error("Failed to render simulation report iframe", err);
+      } catch {
         iframe.classList.add("hidden");
-        status.textContent =
-          "The simulation report is saved, but the preview could not render. Please open it in a new tab after generating the report.";
+        status.textContent = "Report saved, but preview couldn't render. Please open it in a new tab.";
       }
     }
 
     function generateAssessmentRow(title, data) {
-      const score = data && (data.score || data.total);
-      const scoreDisplay = score ? `${data.score || "0"} / ${data.total || "0"}` : "Not recorded";
-      const updatedDisplay = data && data.updatedAt
-        ? (formatTimestamp(data.updatedAt) || data.updatedAt)
-        : "Not available";
+      const hasAny = !!(data && (data.score || data.total || data.updatedAt));
+      const scoreDisplay = hasAny ? `${data.score || "0"} / ${data.total || "0"}` : "Not recorded";
+      const updatedDisplay = data?.updatedAt ? (formatTimestamp(data.updatedAt) || data.updatedAt) : "Not available";
 
       return `
         <tr class="border-t">
-          <td class="py-2 pr-4 font-semibold text-slate-700">${title}</td>
-          <td class="py-2 pr-4 text-slate-700">${escapeHTML(scoreDisplay)}</td>
-          <td class="py-2 text-slate-500 text-sm">${escapeHTML(updatedDisplay)}</td>
+          <td class="py-2 pr-4 font-semibold text-slate-700 px-3">${escapeHTML(title)}</td>
+          <td class="py-2 pr-4 text-slate-700 px-3">${escapeHTML(scoreDisplay)}</td>
+          <td class="py-2 text-slate-500 text-sm px-3">${escapeHTML(updatedDisplay)}</td>
         </tr>
       `;
     }
@@ -421,51 +538,44 @@
       }[c]));
     }
 
-    document.getElementById("printBtn").addEventListener("click", () => window.print());
-    document.getElementById("downloadBtn").addEventListener("click", downloadReport);
-    document.getElementById("resetBtn").addEventListener("click", () => {
-      showReportAlert(
-        "Reset all saved user data, assessments, and timings?",
-        "Confirm Reset",
-        {
-          mode: "confirm",
-          onYes: () => {
-            VLProgress.resetAll();
-            showReportAlert("Reset done. Redirecting to Aim page.", "Reset Complete", { onClose: navigateToAim });
-          },
-          onNo: () => {}
+    // Buttons
+    document.getElementById("printBtn")?.addEventListener("click", () => window.print());
+    document.getElementById("downloadBtn")?.addEventListener("click", downloadReport);
+    document.getElementById("resetBtn")?.addEventListener("click", () => {
+      showReportAlert("Reset all saved user data, assessments, timings, and simulation report?", "Confirm Reset", {
+        mode: "confirm",
+        onYes: () => {
+          VLProgress.resetAll();
+          showReportAlert("Reset done. Redirecting to Aim page.", "Reset Complete", { onClose: navigateToAim });
         }
-      );
+      });
     });
 
     function downloadReport() {
       try {
         const blob = new Blob([document.documentElement.outerHTML], { type: "text/html" });
         const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "progress-report.html";
-        anchor.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      } catch (err) {
-        console.error("Download failed", err);
-        showReportAlert(
-          "Unable to download the report. Please use the Print button or save the page manually.",
-          "Download Failed"
-        );
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "progress-report.html";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch {
+        showReportAlert("Unable to download. Use Print or save the page manually.", "Download Failed");
       }
     }
+
+    reportLockedCTA?.addEventListener("click", () => redirectToUserInputForm("progressreport.html"));
+  })();
   </script>
+
   <script>
     (function initHeaderNav() {
       const toggle = document.getElementById("mobile-menu-toggle");
       const nav = document.querySelector(".top-nav");
       if (!toggle || !nav) return;
-      toggle.addEventListener("click", () => {
-        nav.classList.toggle("hidden");
-      });
+      toggle.addEventListener("click", () => nav.classList.toggle("hidden"));
     })();
   </script>
-  <script src="./user_input_modal.js"></script>
 </body>
 </html>

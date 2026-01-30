@@ -737,7 +737,7 @@
         <nav class="top-nav hidden lg:flex items-center gap-2 lg:gap-3">
           <a href="../../main.html" class="nav-link">Home</a>
           <a href="user_input.html?return=simulation.html" class="nav-link" data-user-input-link data-redirect-return="simulation.html">User Input</a>
-          <a href="progressreport.html" class="nav-link">Progress Report</a>
+       
         </nav>
       </div>
     </div>
@@ -781,7 +781,7 @@
     Procedure
   </a>
 
-    <a href="./simulation/static/index.html" target="_blank" rel="noreferrer noopener" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
+    <a href="./simulation/static/index.html" target="_blank" class="menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group">
     <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -866,7 +866,7 @@
               </a>
             </section>
               <section id="v2-card" class="vl-card p-6 animate-fadeInUp cta-card">
-            <a href="./simulation/static/index.html" target="_blank" rel="noreferrer noopener" class="cta-link">
+            <a href="./simulation/static/index.html" target="_blank" class="cta-link">
               <span>Link Of Simulation</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14"></path>
@@ -1139,7 +1139,7 @@
         showPopup(reminderMessage, 'Reminder', {
           mode: 'confirm',
           onYes: () => {
-            window.open(url, '_blank', 'noopener');
+            window.open(url, '_blank');
           }
         });
         });
@@ -1328,6 +1328,8 @@
 
 
   <script src="./user_input_modal.js"></script>
+  <script src="./progress_tracker.js"></script>
+  <script src="./progress_report_embed.js"></script>
 </body>
 </html>
 

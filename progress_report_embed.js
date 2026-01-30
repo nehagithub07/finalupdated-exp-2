@@ -1,0 +1,533 @@
+(function () {
+  let initialized = false;
+  const fallbackProgress = {
+    hasUser: () => false,
+    declineReport: () => {},
+    getState: () => ({ flags: {} }),
+    initPage: () => {},
+    recordPageExit: () => {},
+    saveState: () => {},
+    mark: () => {},
+    markReportViewed: () => {}
+  };
+
+  const VP = () => (window.VLProgress ? window.VLProgress : fallbackProgress);
+
+  function ensureAlertThemeCss() {
+    const head = document.head || document.getElementsByTagName('head')[0];
+    if (!head) return;
+    if (head.querySelector('link[href*="alert-theme.css"]')) return;
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = './alert-theme.css';
+    head.appendChild(link);
+  }
+  const progressSectionTemplate = `
+    <div class="border-l-4 border-orange-600 pl-4 mb-4 flex items-center justify-between">
+      <div class="flex items-center">
+        <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+          Progress Report
+        </h2>
+      </div>
+      <span class="text-sm text-gray-600">Embedded view (opens within this page)</span>
+    </div>
+    <div class="w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+      <iframe
+        src="progressreport.html"
+        title="Progress Report"
+        class="w-full"
+        style="min-height: 900px;"
+        loading="lazy"
+      ></iframe>
+    </div>
+  `;
+
+  const modalsMarkup = `
+    <div id="userFormPrompt"
+         class="fixed inset-0 hidden items-center justify-center z-[99999] bg-black/60 p-4">
+      <div class="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-gray-200 p-6">
+        <h3 class="text-xl font-bold text-gray-900">Alert</h3>
+        <p class="text-gray-700 mt-2">
+          If you want to generate a progress report, first you have to fill your details in the user form.
+        </p>
+        <div class="mt-5 flex justify-end gap-3">
+          <button id="promptNo"
+                  class="px-4 py-2 rounded-lg border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100">
+            NO
+          </button>
+          <button id="promptYes"
+                  class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+            YES
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="userInputModal" class="hidden fixed inset-0 z-[100000] bg-black/60 px-4 py-8 items-center justify-center">
+      <div class="relative w-full max-w-4xl h-[85vh] bg-white shadow-2xl rounded-3xl overflow-hidden border border-slate-200">
+        <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h3 class="text-lg font-semibold text-slate-900">User Input Form</h3>
+          <button id="userInputModalClose" type="button" class="text-slate-600 hover:text-slate-900 rounded-full focus:outline-none">
+            <span aria-hidden="true" class="text-2xl leading-none">&times;</span>
+            <span class="sr-only">Close</span>
+          </button>
+        </div>
+        <iframe id="userInputIframe" class="w-full h-full border-0" src="" title="User Input Form"></iframe>
+      </div>
+    </div>
+    <div id="aimAlertModal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="aimAlertTitle" aria-describedby="aimAlertMessage">
+      <div class="modal-box" role="document">
+        <h2 id="aimAlertTitle">Alert</h2>
+        <p id="aimAlertMessage"></p>
+        <button type="button" class="modal-close-btn" data-aim-alert-close>OK</button>
+      </div>
+    </div>
+  `;
+
+  const progressNavTemplate = `
+    <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+    </svg>
+    Progress report
+  `;
+
+  function getPageName() {
+    const segments = window.location.pathname.split('/');
+    const lastSegment = segments.pop() || '';
+    return lastSegment || 'index.html';
+  }
+
+  function ensureProgressSection(main) {
+    if (!main) return;
+    if (document.getElementById('progressreport')) return;
+    const section = document.createElement('section');
+    section.id = 'progressreport';
+    section.className = 'section-content vl-card mb-8 p-6 animate-fadeInUp';
+    section.innerHTML = progressSectionTemplate;
+    main.appendChild(section);
+  }
+
+  function ensureProgressNav(isAimPage) {
+    const navContainer = document.querySelector('#sidebar nav, .vl-sidebar nav');
+    if (!navContainer) return null;
+    let anchor = document.getElementById('progressReportNav');
+    if (!anchor) {
+      anchor = navContainer.querySelector('[data-progress-report-link]') ||
+               navContainer.querySelector('a[href*="progressreport"]');
+    }
+
+    if (anchor) {
+      if (!anchor.id) anchor.id = 'progressReportNav';
+      anchor.href = isAimPage ? '#progressreport' : 'progressreport.html';
+      anchor.setAttribute('data-progress-report-link', '');
+      return anchor;
+    }
+
+    anchor = document.createElement('a');
+    anchor.id = 'progressReportNav';
+    anchor.href = isAimPage ? '#progressreport' : 'progressreport.html';
+    anchor.className = 'menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group';
+    anchor.setAttribute('data-progress-report-link', '');
+    anchor.innerHTML = progressNavTemplate;
+    navContainer.appendChild(anchor);
+    return anchor;
+  }
+
+  function ensureModals() {
+    if (document.getElementById('userFormPrompt')) return;
+    document.body.insertAdjacentHTML('beforeend', modalsMarkup);
+  }
+
+  function markHeaderProgressLinks(isAimPage) {
+    const headerLinks = Array.from(document.querySelectorAll('.top-nav .nav-link'));
+    headerLinks.forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      if (href.includes('progressreport')) {
+        link.setAttribute('data-progress-report-link', '');
+        if (isAimPage) {
+          link.href = '#progressreport';
+        }
+        // Always stay in the same tab/window for the progress report
+        link.setAttribute('target', '_self');
+      }
+    });
+  }
+
+  function forceSameTabProgressLinks() {
+    const links = document.querySelectorAll('a[href*="progressreport"]');
+    links.forEach((link) => {
+      link.removeAttribute('target');
+      link.setAttribute('target', '_self');
+    });
+  }
+
+  function setActiveMenu() {
+    const page = getPageName();
+    const hash = window.location.hash;
+    const links = Array.from(document.querySelectorAll('.menu-item'));
+    links.forEach((link) => link.classList.remove('active'));
+
+    let activeLink = null;
+    for (const link of links) {
+      const href = link.getAttribute('href') || '';
+      const [targetPage, targetHash] = href.split('#');
+      if (hash === '#progressreport' && targetHash === 'progressreport') {
+        activeLink = link;
+        break;
+      }
+      if (!targetHash && targetPage && targetPage === page) {
+        activeLink = link;
+      }
+    }
+
+    if (activeLink) activeLink.classList.add('active');
+  }
+
+  function init() {
+    if (initialized) return;
+    initialized = true;
+    const hasSharedModal = typeof window.openSharedUserInputModal === 'function';
+
+    ensureAlertThemeCss();
+    forceSameTabProgressLinks();
+
+    const pageName = getPageName();
+    const isAimPage = pageName === 'aim.html';
+    const main = document.querySelector('main');
+    ensureModals();
+    if (isAimPage && main) ensureProgressSection(main);
+    ensureProgressNav(isAimPage);
+    markHeaderProgressLinks(isAimPage);
+    setActiveMenu();
+
+    VP().initPage();
+
+    const progressReturnUrl = isAimPage ? `${pageName}#progressreport` : 'progressreport.html';
+
+    const userFormPrompt = document.getElementById('userFormPrompt');
+    const promptYes = document.getElementById('promptYes');
+    const promptNo = document.getElementById('promptNo');
+    const userInputModal = document.getElementById('userInputModal');
+    const userInputIframe = document.getElementById('userInputIframe');
+    const userInputModalClose = document.getElementById('userInputModalClose');
+    const aimAlertModal = document.getElementById('aimAlertModal');
+    const aimAlertTitle = document.getElementById('aimAlertTitle');
+    const aimAlertMessage = document.getElementById('aimAlertMessage');
+    const aimAlertClose = aimAlertModal?.querySelector('[data-aim-alert-close]');
+
+    function openPrompt() {
+      if (!userFormPrompt) return;
+      userFormPrompt.classList.remove('hidden');
+      userFormPrompt.classList.add('flex');
+    }
+
+    function closePrompt() {
+      if (!userFormPrompt) return;
+      userFormPrompt.classList.add('hidden');
+      userFormPrompt.classList.remove('flex');
+    }
+
+    function openUserInputModal(returnUrl = pageName) {
+      if (hasSharedModal) {
+        window.openSharedUserInputModal(returnUrl);
+        return;
+      }
+      if (!userInputModal || !userInputIframe) return;
+      const params = new URLSearchParams();
+      if (returnUrl) params.set('return', returnUrl);
+      userInputIframe.src = `user_input.html${params.toString() ? `?${params}` : ''}`;
+      userInputModal.classList.remove('hidden');
+      userInputModal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+    }
+
+    function closeUserInputModal() {
+      if (!userInputModal) return;
+      userInputModal.classList.add('hidden');
+      userInputModal.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+      if (userInputIframe) userInputIframe.src = 'about:blank';
+    }
+
+    let aimAlertOnClose = null;
+
+    function showAimAlert(message, title = 'Notice', onClose = null) {
+      if (!aimAlertModal) {
+        alert(message);
+        if (typeof onClose === 'function') onClose();
+        return;
+      }
+      if (aimAlertTitle) aimAlertTitle.textContent = title;
+      if (aimAlertMessage) aimAlertMessage.textContent = message;
+      aimAlertOnClose = typeof onClose === 'function' ? onClose : null;
+      aimAlertModal.classList.add('show');
+      document.body.classList.add('is-modal-open');
+      aimAlertClose?.focus();
+    }
+
+    function closeAimAlert() {
+      if (!aimAlertModal) return;
+      aimAlertModal.classList.remove('show');
+      document.body.classList.remove('is-modal-open');
+      if (aimAlertOnClose) {
+        const callback = aimAlertOnClose;
+        aimAlertOnClose = null;
+        callback();
+      }
+    }
+
+    if (aimAlertClose) {
+      aimAlertClose.addEventListener('click', closeAimAlert);
+    }
+
+    aimAlertModal?.addEventListener('click', (event) => {
+      if (event.target === aimAlertModal) closeAimAlert();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && aimAlertModal?.classList.contains('show')) {
+        closeAimAlert();
+      }
+    });
+
+    if (userInputModalClose) {
+      userInputModalClose.addEventListener('click', closeUserInputModal);
+    }
+
+    if (userInputModal) {
+      userInputModal.addEventListener('click', (event) => {
+        if (event.target === userInputModal) {
+          closeUserInputModal();
+        }
+      });
+    }
+
+    const userInputLinks = Array.from(document.querySelectorAll('[data-user-input-link]'));
+    const userInputDefaultLabels = new WeakMap();
+
+    function getFirstNameFrom(fullName) {
+      if (!fullName || typeof fullName !== 'string') return '';
+      const trimmed = fullName.trim();
+      if (!trimmed) return '';
+      return trimmed.split(/\s+/)[0];
+    }
+
+    function getDefaultUserInputLabel(link) {
+      if (userInputDefaultLabels.has(link)) {
+        return userInputDefaultLabels.get(link);
+      }
+      const label = (link.textContent || '').trim() || 'User Input';
+      userInputDefaultLabels.set(link, label);
+      return label;
+    }
+
+    function refreshUserInputLinkLabels() {
+      const state = VP().getState();
+      const firstName = getFirstNameFrom(state.user?.name);
+      userInputLinks.forEach((link) => {
+        const label = firstName ? firstName : getDefaultUserInputLabel(link);
+        link.textContent = label;
+        if (firstName && state.user?.name) {
+          link.setAttribute('title', state.user.name);
+        } else {
+          link.removeAttribute('title');
+        }
+      });
+    }
+    if (!hasSharedModal) {
+      userInputLinks.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const targetReturn = link.dataset.redirectReturn || pageName;
+          openUserInputModal(targetReturn);
+        });
+      });
+    }
+
+    refreshUserInputLinkLabels();
+
+    const progressReportLinks = Array.from(document.querySelectorAll('[data-progress-report-link]'));
+
+    function disableProgressReportUI() {
+      progressReportLinks.forEach((link) => {
+        link.classList.add('opacity-50', 'cursor-not-allowed');
+        link.setAttribute('aria-disabled', 'true');
+        link.setAttribute('title', 'Fill the user form to enable Progress Report');
+        // Fallback if Tailwind classes are unavailable (offline).
+        link.style.opacity = '0.55';
+        link.style.cursor = 'not-allowed';
+      });
+    }
+
+    function enableProgressReportUI() {
+      progressReportLinks.forEach((link) => {
+        link.classList.remove('opacity-50', 'cursor-not-allowed');
+        link.removeAttribute('aria-disabled');
+        link.removeAttribute('title');
+        link.style.opacity = '';
+        link.style.cursor = '';
+      });
+    }
+
+    if (VP().hasUser()) {
+      enableProgressReportUI();
+    } else {
+      disableProgressReportUI();
+    }
+
+    const handleProgressLinkClick = (event) => {
+      if (VP().hasUser()) {
+        enableProgressReportUI();
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      showAimAlert(
+        'To view the progress report, you must first fill in all your details in the user form.',
+        'Notice',
+        () => openUserInputModal(progressReturnUrl)
+      );
+    };
+
+    if (promptYes) {
+      promptYes.addEventListener('click', () => {
+        closePrompt();
+        openUserInputModal(progressReturnUrl);
+      });
+    }
+
+    if (promptNo) {
+      promptNo.addEventListener('click', () => {
+        closePrompt();
+        VP().declineReport();
+        disableProgressReportUI();
+      });
+    }
+
+    progressReportLinks.forEach((link) => {
+      link.addEventListener('click', handleProgressLinkClick, true);
+    });
+
+    // Delegated guard in case any link was missed
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('a');
+      if (!target) return;
+      const href = target.getAttribute('href') || '';
+      if (!href.toLowerCase().includes('progressreport')) return;
+      if (VP().hasUser()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showAimAlert(
+        'To view the progress report, you must first fill in all your details in the user form.',
+        'Notice',
+        () => openUserInputModal(progressReturnUrl)
+      );
+    }, true);
+
+    if (isAimPage) {
+      window.addEventListener('hashchange', setActiveMenu);
+    }
+
+    if (isAimPage && window.location.hash === '#progressreport' && !VP().hasUser()) {
+      showAimAlert(
+        'To view the progress report, you must first fill in all your details in the user form.',
+        'Notice',
+        () => openUserInputModal(progressReturnUrl)
+      );
+    }
+
+    window.maybePromptUserForm = function maybePromptUserForm() {
+      const state = VP().getState();
+      if (VP().hasUser()) return;
+      if (state.flags && state.flags.reportDeclined) return;
+      const sessionKey = 'vlab_exp2_prompted_once';
+      try {
+        if (sessionStorage.getItem(sessionKey) === '1') return;
+        sessionStorage.setItem(sessionKey, '1');
+      } catch (error) {
+        // ignore storage failures
+      }
+      openPrompt();
+    };
+
+    window.addEventListener('message', (event) => {
+      const allowedOrigin = window.location.origin;
+      if (allowedOrigin !== "null" && event.origin !== allowedOrigin) return;
+      const data = event.data;
+      if (!data || !data.type) return;
+
+      if (data.type === 'vlab:simulation_report_generated') {
+        const html = typeof data.html === 'string' ? data.html : '';
+        const updatedAt = (data.updatedAt || String(Date.now())).toString();
+        if (html && html.trim()) {
+          try {
+            localStorage.setItem('vlab_exp2_simulation_report_html', html);
+            localStorage.setItem('vlab_exp2_simulation_report_updated_at', updatedAt);
+            const activeHash = localStorage.getItem('vlab_exp2_active_user_hash');
+            if (activeHash) {
+              localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_html`, html);
+              localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_updated_at`, updatedAt);
+            }
+          } catch (e) {}
+
+          // Also persist in window.name (helps file:// navigation in the same tab).
+          try {
+            const PREFIX = 'VLAB_EXP2::';
+            if (html.length <= 1500000) { // ~1.5MB safety guard
+              let wn = {};
+              if (typeof window.name === 'string' && window.name.startsWith(PREFIX)) {
+                wn = JSON.parse(window.name.slice(PREFIX.length)) || {};
+              }
+              wn['vlab_exp2_simulation_report_html'] = html;
+              wn['vlab_exp2_simulation_report_updated_at'] = updatedAt;
+              window.name = PREFIX + JSON.stringify(wn);
+            }
+          } catch (e) {}
+
+          const iframe = document.querySelector('iframe[title="Progress Report"]');
+          if (iframe) {
+            try {
+              iframe.contentWindow?.postMessage({ type: 'vlab:simulation_report_generated' }, '*');
+            } catch (e) {
+              iframe.src = iframe.src;
+            }
+          }
+        }
+        return;
+      }
+
+      if (data.type === 'vlab:user_input_cancel') {
+        closeUserInputModal();
+        return;
+      }
+
+      if (data.type === 'vlab:user_input_submitted') {
+        closeUserInputModal();
+        refreshUserInputLinkLabels();
+        if (data.returnUrl) window.location.href = data.returnUrl;
+      }
+    });
+
+    setTimeout(() => {
+      if (document.body.classList.contains('body-blurred')) return;
+      const hasSeenIntroBefore = typeof window.hasIntroBeenShown === 'function'
+        ? window.hasIntroBeenShown()
+        : true;
+      if (!hasSeenIntroBefore) return;
+      const state = VP().getState();
+      if (!VP().hasUser() && !(state.flags && state.flags.reportDeclined)) {
+        window.maybePromptUserForm();
+      }
+    }, 700);
+  }
+
+  // Run ASAP (script is included at the end of pages), but keep a DOMContentLoaded
+  // fallback for safety if a page ever moves this script into <head>.
+  init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();

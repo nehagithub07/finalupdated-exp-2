@@ -226,6 +226,11 @@ function isModalOpen() {
 
 window.closeModal = closeModal;
 window.showPopup = showPopup;
+if (typeof window !== "undefined") {
+  window.addEventListener(CONNECTION_VERIFIED_EVENT, () => window.labTracking?.recordStep?.("Connections verified"));
+  window.addEventListener(MCB_TURNED_ON_EVENT, () => window.labTracking?.recordStep?.("MCB turned on"));
+  window.addEventListener(STARTER_MOVED_EVENT, () => window.labTracking?.recordStep?.("Starter engaged"));
+}
 
 (function initWarningModal() {
   const modal = document.getElementById("warningModal");
@@ -1597,6 +1602,9 @@ function voltageToAngle(voltageValue) {
   if (typeof window.sessionStart !== "number") {
     window.sessionStart = sessionStart;
   }
+  if (typeof window.labTracking?.markSimulationStart === "function") {
+    window.labTracking.markSimulationStart(sessionStart);
+  }
   const minGraphPoints = 6;
   const lampSelect = document.getElementById("number");
   const bulbs = Array.from(document.querySelectorAll(".lamp-bulb"));
@@ -1796,6 +1804,7 @@ function voltageToAngle(voltageValue) {
 
         window.Plotly.newPlot(graphPlot, [trace], layout, { displaylogo: false, responsive: true });
         graphPlotted = true;
+        window.labTracking?.recordStep?.("Graph plotted");
         stepGuide.complete("graph");
         updateGraphControls();
         if (!graphPlotAlertShown) {
@@ -1972,6 +1981,10 @@ tr:nth-child(even) { background-color: #f8fbff; }
     const endTime = Date.now();
     const endTimeText = new Date(endTime).toLocaleTimeString();
     const durationMinutes = Math.max(0, Math.round(((endTime - sessionStart) / 60000) * 10) / 10);
+    if (typeof window.labTracking?.markSimulationEnd === "function") {
+      window.labTracking.markSimulationEnd(endTime);
+    }
+    window.labTracking?.recordStep?.("Simulation report generated");
 
     const html = `
 <!DOCTYPE html>
@@ -2072,8 +2085,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
 </body>
 </html>`;
 
+    const stamp = String(Date.now());
     try {
-      const stamp = String(Date.now());
       localStorage.setItem("vlab_exp2_simulation_report_html", html);
       localStorage.setItem("vlab_exp2_simulation_report_updated_at", stamp);
       const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
@@ -2083,41 +2096,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
       }
     } catch (e) {}
 
-    const reportWindow = window.open("", "report");
-    if (!reportWindow) {
-      speakOrAlert("Please allow pop-ups to view the report.");
-      return;
-    }
-
-      try {
-        reportWindow.document.open("text/html", "replace");
-        reportWindow.document.write(html);
-        reportWindow.document.close();
-        reportWindow.focus();
-        showPopup(
-          "Report generated. You can now print it or reset the experiment.",
-          "Report Ready"
-        );
-        speak(
-          "Report opened in a new tab. You can print it from the report window, or use Reset to start again."
-        );
-      } catch (err) {
-        try {
-          const blob = new Blob([html], { type: "text/html" });
-          const url = URL.createObjectURL(blob);
-          reportWindow.location = url;
-          showPopup(
-            "Report generated. You can now print it or reset the experiment.",
-            "Report Ready"
-          );
-          setTimeout(function () {
-            URL.revokeObjectURL(url);
-          }, 5000);
-      } catch (err2) {
-        console.error("Report generation failed:", err2);
-        speakOrAlert("Unable to render the report. Please disable popup blockers and try again.");
-      }
-    }
+    const progressReportUrl = new URL("../../progressreport.html", window.location.href);
+    window.location.href = progressReportUrl.href;
   }
 
   function addRowToTable(idx) {
@@ -2161,6 +2141,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
       current: ammeter2Readings[selectedIndex],
       voltage: voltmeter2Readings[selectedIndex]
     });
+    window.labTracking?.recordStep?.(`Reading added (Load ${load})`);
 
     addRowToTable(selectedIndex);
     graphPlotted = false;

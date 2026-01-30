@@ -1164,7 +1164,7 @@
           <nav class="top-nav hidden lg:flex items-center gap-2 lg:gap-3">
             <a href="../../main.html" class="nav-link">Home</a>
             <a href="user_input.html?return=aim.html" class="nav-link" data-user-input-link data-redirect-return="aim.html">User Input</a>
-            <a href="progressreport.html" class="nav-link" data-progress-report-link>Progress Report</a>
+           
           </nav>
         </div>
       </div>
@@ -1828,7 +1828,16 @@
       markIntroAsShown();
       resetNarrationState();
      if (window.VLProgress) VLProgress.mark("aimAfterIntro");
-if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm();
+      // The prompt logic is defined later in the page. If the user closes the
+      // intro very quickly (before that script runs), retry for a short time.
+      (function tryPrompt(attempt) {
+        if (typeof window.maybePromptUserForm === "function") {
+          window.maybePromptUserForm();
+          return;
+        }
+        if (attempt >= 25) return; // ~2.5s max
+        setTimeout(() => tryPrompt(attempt + 1), 100);
+      })(0);
       // Always go to aim section (you are on aim.html anyway)
       const aimSection = document.getElementById('aim');
       if (aimSection) {
@@ -2158,6 +2167,32 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
     }
   }
 
+  function migrateGeneralProgressKeysToUser(userHash) {
+    if (!userHash || typeof localStorage === "undefined") return;
+    try {
+      let movedAny = false;
+      const prefix = `vlab_exp2_user_${userHash}_`;
+      for (const key of GENERAL_PROGRESS_KEYS) {
+        const value = localStorage.getItem(key);
+        if (!value || !String(value).trim()) continue;
+
+        const suffix = key.replace(/^vlab_exp2_/, "");
+        const destKey = prefix + suffix;
+        const existing = localStorage.getItem(destKey);
+        if (!existing || !String(existing).trim()) {
+          localStorage.setItem(destKey, value);
+        }
+        movedAny = true;
+      }
+
+      if (movedAny) {
+        clearGeneralProgressKeys();
+      }
+    } catch {
+      // ignore storage failures
+    }
+  }
+
   function ensureHistory(state) {
     if (!Array.isArray(state.userHistory)) state.userHistory = [];
   }
@@ -2329,6 +2364,9 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
       designation: (user.designation || "").trim()
     };
     const normalizedEmail = normalizeEmail(trimmedUser.email);
+    const newHash = normalizedEmail ? computeUserHash(normalizedEmail) : "";
+    let prevHash = "";
+    try { prevHash = localStorage.getItem("vlab_exp2_active_user_hash") || ""; } catch {}
 
     const state = loadState();
     const isNewUserByEmail = recordUserHistory(state, trimmedUser);
@@ -2343,8 +2381,8 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
     state.flags.reportDeclined = false;
 
     try {
-      if (normalizedEmail) {
-        localStorage.setItem("vlab_exp2_active_user_hash", computeUserHash(normalizedEmail));
+      if (newHash) {
+        localStorage.setItem("vlab_exp2_active_user_hash", newHash);
       } else {
         localStorage.removeItem("vlab_exp2_active_user_hash");
       }
@@ -2352,8 +2390,17 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
       // ignore storage errors
     }
 
-    if (isNewUserByEmail && normalizedEmail) {
-      clearGeneralProgressKeys();
+    // If user details are filled after completing parts of the experiment,
+    // migrate the general keys into the user-scoped keys so the Progress Report
+    // still shows the recorded results.
+    if (isNewUserByEmail && newHash) {
+      if (!prevHash) {
+        migrateGeneralProgressKeysToUser(newHash);
+      } else if (prevHash && prevHash !== newHash) {
+        clearGeneralProgressKeys();
+      }
+    } else if (newHash) {
+      migrateGeneralProgressKeysToUser(newHash);
     }
 
     saveState(state);
@@ -2510,6 +2557,31 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
   const aimAlertClose = aimAlertModal?.querySelector("[data-aim-alert-close]");
   let aimAlertOnClose = null;
 
+  const defaultUserInputNavLabel =
+    (userInputNavLink?.textContent || "User Input").trim() || "User Input";
+
+  function getFirstName(fullName) {
+    if (!fullName || typeof fullName !== "string") return "";
+    const trimmed = fullName.trim();
+    if (!trimmed) return "";
+    return trimmed.split(/\s+/)[0];
+  }
+
+  function refreshUserInputNavLabel() {
+    if (!userInputNavLink) return;
+    const state = VLProgress.getState();
+    const firstName = getFirstName(state.user?.name);
+    if (firstName) {
+      userInputNavLink.textContent = firstName;
+      if (state.user?.name) {
+        userInputNavLink.setAttribute("title", state.user.name);
+      }
+      return;
+    }
+    userInputNavLink.textContent = defaultUserInputNavLabel;
+    userInputNavLink.removeAttribute("title");
+  }
+
   function openUserInputModal(returnUrl = "aim.html") {
     if (!userInputModal || !userInputIframe) return;
     const params = new URLSearchParams();
@@ -2588,11 +2660,52 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
     });
   }
 
+  refreshUserInputNavLabel();
+
   window.addEventListener("message", (event) => {
-    if (event.origin !== window.location.origin) return;
+    const allowedOrigin = window.location.origin;
+    if (allowedOrigin !== "null" && event.origin !== allowedOrigin) return;
     const data = event.data;
-    if (!data || data.type !== "vlab:user_input_submitted") return;
+    if (!data || !data.type) return;
+
+    if (data.type === "vlab:simulation_report_generated") {
+      const html = typeof data.html === "string" ? data.html : "";
+      const updatedAt = (data.updatedAt || String(Date.now())).toString();
+      if (html && html.trim()) {
+        try {
+          localStorage.setItem("vlab_exp2_simulation_report_html", html);
+          localStorage.setItem("vlab_exp2_simulation_report_updated_at", updatedAt);
+          const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
+          if (activeHash) {
+            localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_html`, html);
+            localStorage.setItem(`vlab_exp2_user_${activeHash}_simulation_report_updated_at`, updatedAt);
+          }
+        } catch (e) {}
+
+        try {
+          const PREFIX = "VLAB_EXP2::";
+          if (html.length <= 1500000) {
+            let wn = {};
+            if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
+              wn = JSON.parse(window.name.slice(PREFIX.length)) || {};
+            }
+            wn["vlab_exp2_simulation_report_html"] = html;
+            wn["vlab_exp2_simulation_report_updated_at"] = updatedAt;
+            window.name = PREFIX + JSON.stringify(wn);
+          }
+        } catch (e) {}
+      }
+      return;
+    }
+
+    if (data.type === "vlab:user_input_cancel") {
+      closeUserInputModal();
+      return;
+    }
+
+    if (data.type !== "vlab:user_input_submitted") return;
     closeUserInputModal();
+    refreshUserInputNavLabel();
     if (data.returnUrl) {
       window.location.href = data.returnUrl;
     }
@@ -2601,11 +2714,24 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
   const progressReportLinks = Array.from(document.querySelectorAll("[data-progress-report-link]"));
 
   function disableProgressReportUI() {
-    progressReportLinks.forEach((link) => link.classList.add("opacity-50"));
+    progressReportLinks.forEach((link) => {
+      link.classList.add("opacity-50", "cursor-not-allowed");
+      link.setAttribute("aria-disabled", "true");
+      link.setAttribute("title", "Fill the user form to enable Progress Report");
+      // Fallback if Tailwind classes are unavailable (offline).
+      link.style.opacity = "0.55";
+      link.style.cursor = "not-allowed";
+    });
   }
 
   function enableProgressReportUI() {
-    progressReportLinks.forEach((link) => link.classList.remove("opacity-50"));
+    progressReportLinks.forEach((link) => {
+      link.classList.remove("opacity-50", "cursor-not-allowed");
+      link.removeAttribute("aria-disabled");
+      link.removeAttribute("title");
+      link.style.opacity = "";
+      link.style.cursor = "";
+    });
   }
 
   // If already filled user form, ensure enabled
@@ -2645,6 +2771,27 @@ if (typeof window.maybePromptUserForm === "function") window.maybePromptUserForm
       );
     }, true);
   });
+
+  // Delegated guard for any missed Progress Report links (safety net)
+  document.addEventListener("click", (event) => {
+    const target = event.target.closest("a");
+    if (!target) return;
+    const href = (target.getAttribute("href") || "").trim();
+    const isProgressLink =
+      target.hasAttribute("data-progress-report-link") ||
+      href.toLowerCase().includes("progressreport") ||
+      href === "#progressreport" ||
+      href.endsWith("#progressreport");
+    if (!isProgressLink) return;
+    if (VLProgress.hasUser()) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showAimAlert(
+      "To view the progress report, you must first fill in all your details in the user form.",
+      "Notice",
+      () => openUserInputModal("aim.html#progressreport")
+    );
+  }, true);
 
   // If user loads aim.html#progressreport directly without user form
   if (window.location.hash === "#progressreport" && !VLProgress.hasUser()) {

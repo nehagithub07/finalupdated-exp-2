@@ -1605,14 +1605,14 @@ body.is-modal-open {
   max-width: 420px;
   width: min(420px, 92vw);
   text-align: center;
-  border: 2px solid rgba(11, 96, 168, 0.35);
-  color: #0f172a;
+  border: 2px solid #B89B3E;
+  color: #2c1a0a;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
   animation: slideFromTop 0.5s ease-in, pulse 1.5s infinite;
 }
 
 .modal-box h2 {
-  color: #0f172a;
+  color: #2c1a0a;
   margin-bottom: 10px;
 }
 
@@ -1625,7 +1625,6 @@ body.is-modal-open {
 }
 
 .modal-box.danger {
-  border-color: rgba(248, 113, 113, 0.85);
   animation: slideFromTop 0.6s ease-out, pulse 1.5s infinite;
 }
 
@@ -1636,9 +1635,9 @@ body.is-modal-open {
 .modal-close-btn {
   margin-top: 15px;
   padding: 10px 18px;
-  border: 1px solid rgba(11, 96, 168, 0.65);
-  background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
-  color: #ffffff;
+  border: 1px solid #B89B3E;
+  background: linear-gradient(135deg, #2C2C2C, #3B3B3B);
+  color: #E6C36A;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
@@ -1651,13 +1650,13 @@ body.is-modal-open {
 
 .modal-close-btn:hover {
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 18px 35px rgba(11, 96, 168, 0.45);
-  background: linear-gradient(120deg, #03243d, #0a5aa4, #0b60a8);
+  box-shadow: 0 8px 20px rgba(184, 155, 62, 0.4);
+  background: linear-gradient(135deg, #3B3B3B, #2C2C2C);
 }
 
 .modal-close-btn:active {
   transform: translateY(1px) scale(0.98);
-  box-shadow: 0 3px 8px rgba(11, 96, 168, 0.35);
+  box-shadow: 0 3px 8px rgba(184, 155, 62, 0.3);
 }
 
 @keyframes pulse {

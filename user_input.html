@@ -3,341 +3,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>User Input Form</title>
+  <title>User Input</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      background: radial-gradient(circle at 10% 20%, rgba(59,130,246,0.08), transparent 25%),
-                  radial-gradient(circle at 90% 10%, rgba(14,165,233,0.08), transparent 22%),
-                  linear-gradient(180deg, #f8fbff 0%, #eef3fb 35%, #e7efff 100%);
-    }
-
-    .card-shell {
-      position: relative;
-      overflow: hidden;
-      border-radius: 18px;
-      background: #ffffff;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
-    }
-    .card-shell::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(11,96,168,0.08), transparent 35%),
-                  radial-gradient(circle at 80% 0%, rgba(11,96,168,0.05), transparent 30%);
-      pointer-events: none;
-    }
-
-    .field {
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .field:focus {
-      border-color: #0b60a8;
-      box-shadow: 0 0 0 3px rgba(11, 96, 168, 0.18);
-    }
-
-    .badge-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(11, 96, 168, 0.1);
-      color: #0b60a8;
-      font-weight: 600;
-      font-size: 0.85rem;
-    }
-
-    .user-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 12, 40, 0.85);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      z-index: 50;
-    }
-
-    .user-modal.show {
-      display: flex;
-    }
-
-    .user-modal-box {
-      background: #ffffff;
-      padding: 2rem;
-      border-radius: 1rem;
-      max-width: 420px;
-      width: 100%;
-      text-align: center;
-      border: 2px solid rgba(11, 96, 168, 0.35);
-      box-shadow: 0 30px 60px rgba(2, 12, 40, 0.25);
-      animation: fadeInDown 0.45s ease forwards;
-      color: #0f172a;
-    }
-
-    .user-modal-box h2 {
-      margin-bottom: 0.5rem;
-      font-size: 1.25rem;
-      color: #0f172a;
-    }
-
-    .user-modal-box p {
-      margin-bottom: 1.25rem;
-      color: #1f2937;
-      line-height: 1.6;
-    }
-
-    .user-modal-btn {
-      padding: 0.75rem 1.5rem;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 12px 28px rgba(2, 26, 44, 0.45);
-    }
-
-    .user-modal-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 18px 35px rgba(2, 26, 44, 0.55);
-    }
-
-    @keyframes fadeInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-25px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  </style>
 </head>
-<body class="min-h-screen">
-  <!-- Load tracker -->
-  <script src="./progress_tracker.js"></script>
 
-  <div class="max-w-3xl mx-auto px-4 py-12">
-    <div class="card-shell p-8 relative overflow-hidden">
-      <div class="flex flex-wrap items-start justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <h1 class="text-3xl font-bold text-slate-900 mt-1">User Input Form</h1>
-          <p class="text-slate-600 mt-1">Provide your details so we can save your progress and reports.</p>
-        </div>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+  <div class="w-full max-w-xl bg-white rounded-2xl border border-slate-200 shadow p-6">
+    <h1 class="text-2xl font-bold text-slate-900">User Input Form</h1>
+    <p class="text-slate-600 mt-1">Fill details to enable the experiment + progress report.</p>
+
+    <form id="userForm" class="mt-6 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
+        <input id="name" type="text" required
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
       </div>
 
-      <form id="userForm" class="mt-6 space-y-5">
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">Name</label>
-            <input id="name" type="text" required
-                   class="field mt-1 w-full rounded-lg px-3 py-2 bg-white outline-none"/>
-          </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+        <input id="email" type="email" required
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+       
+      </div>
 
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-slate-700">Designation</label>
-            <select id="designation" required
-                    class="field mt-1 w-full rounded-lg px-3 py-2 bg-white outline-none">
-              <option value="">Select</option>
-              <option value="Student">Student</option>
-              <option value="Faculty">Faculty</option>
-              <option value="Working Professional">Working Professional</option>
-              <option value="PhD Scholar">PhD Scholar</option>
-            </select>
-          </div>
-        </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Designation</label>
+        <select id="designation" required
+          class="w-full rounded-xl border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+          <option value="">Select…</option>
+          <option>Student</option>
+          <option>Faculty</option>
+          <option>Researcher</option>
+          <option>Other</option>
+        </select>
+      </div>
 
-        <div class="space-y-2">
-          <label class="block text-sm font-semibold text-slate-700">Email</label>
-          <input id="email" type="email" required
-                 placeholder="yourname@university.edu"
-                 class="field mt-1 w-full rounded-lg px-3 py-2 bg-white outline-none"/>
-          <p id="emailErr" class="text-sm text-red-600 mt-1 hidden"></p>
-          <p id="emailHint" class="text-sm text-slate-500 mt-1 hidden"></p>
-        </div>
+      <div class="flex gap-2 justify-end pt-2">
+        <button id="cancelBtn" type="button"
+          class="px-4 py-2 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-100">
+          Cancel
+        </button>
+        <button type="submit"
+          class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-black">
+          Save & Continue
+        </button>
+      </div>
+    </form>
 
-        <div class="flex flex-wrap gap-3 pt-2">
-          <button type="submit"
-                  class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] text-white px-5 py-2 font-semibold shadow-lg shadow-sky-200/70 hover:shadow-xl">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Submit
-          </button>
-          <button type="button" id="backBtn"
-                  class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-2 font-semibold text-slate-700 bg-white hover:bg-slate-100">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+    <p id="errorBox" class="hidden mt-4 text-sm font-semibold text-red-600"></p>
   </div>
 
-  <div id="userAlertModal" class="user-modal" role="alertdialog" aria-modal="true">
-    <div class="user-modal-box">
-      <h2 id="userAlertTitle">Success</h2>
-      <p id="userAlertMessage">Submitted! Now you can generate your progress report.</p>
-      <button type="button" class="user-modal-btn" data-user-modal-close>OK</button>
-    </div>
-  </div>
-
+  <script src="./progress_tracker.js"></script>
   <script>
-    // Track this page
-    if (window.VLProgress) VLProgress.initPage();
-
-    // ✅ EDIT THIS LIST for your allowed domains
+    // ✅ Edit your allowed domains here:
     const ALLOWED_DOMAINS = [
       "university.edu",
       "iitr.ac.in",
-      "gmail.com",              // ✅ allow Gmail
-    
+      "gmail.com"
+      // add more like: "spu.edu"
     ];
 
-    function getReturnURL() {
-      const params = new URLSearchParams(window.location.search);
-      const ret = (params.get("return") || "aim.html").trim();
-      // simple sanitize: allow only local .html
-      if (!/^[a-z0-9_\-\/]+\.html$/i.test(ret)) return "aim.html";
-      return ret;
+    function getReturnUrl() {
+      const u = new URL(window.location.href);
+      return u.searchParams.get("return") || "aim.html";
     }
 
-    function emailAllowed(email) {
-      const at = email.lastIndexOf("@");
-      if (at === -1) return false;
-      const domain = email.slice(at + 1).toLowerCase();
-      return ALLOWED_DOMAINS.some(d => d.toLowerCase() === domain);
+    function showError(msg) {
+      const el = document.getElementById("errorBox");
+      el.textContent = msg;
+      el.classList.remove("hidden");
     }
 
-    const form = document.getElementById("userForm");
-    const emailErr = document.getElementById("emailErr");
-    const emailHint = document.getElementById("emailHint");
-    const emailInput = document.getElementById("email");
-
-    function updateEmailHint() {
-      if (!emailInput || !emailHint) return;
-      const emailValue = emailInput.value.trim();
-      if (!emailValue || !window.VLProgress || typeof window.VLProgress.findUserByEmail !== "function") {
-        emailHint.textContent = "";
-        emailHint.classList.add("hidden");
-        return;
-      }
-
-      const existing = window.VLProgress.findUserByEmail(emailValue);
-      if (existing) {
-        let seenLabel = "earlier";
-        if (existing.firstSeen) {
-          const parsed = new Date(existing.firstSeen);
-          if (!Number.isNaN(parsed.getTime())) {
-            seenLabel = parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-          }
-        }
-
-        emailHint.textContent = `Welcome back! This email was recorded on ${seenLabel}.`;
-        emailHint.classList.remove("hidden");
-        emailHint.classList.remove("text-slate-500");
-        emailHint.classList.add("text-green-600");
-      } else {
-        emailHint.textContent = "Looks like a new user; we will record this email once you submit.";
-        emailHint.classList.remove("hidden");
-        emailHint.classList.remove("text-green-600");
-        emailHint.classList.add("text-slate-500");
-      }
+    function clearError() {
+      document.getElementById("errorBox").classList.add("hidden");
+      document.getElementById("errorBox").textContent = "";
     }
 
-    if (emailInput) {
-      emailInput.addEventListener("input", () => {
-        emailErr.classList.add("hidden");
-        updateEmailHint();
-      });
-      emailInput.addEventListener("blur", updateEmailHint);
-      updateEmailHint();
+    function isAllowedEmail(email) {
+      const e = String(email || "").trim().toLowerCase();
+      const at = e.lastIndexOf("@");
+      if (at <= 0) return false;
+      const domain = e.slice(at + 1);
+      return ALLOWED_DOMAINS.some(d => domain === d || domain.endsWith("." + d));
     }
 
-    document.getElementById("backBtn").addEventListener("click", () => {
-      window.location.href = getReturnURL();
+    document.getElementById("cancelBtn").addEventListener("click", () => {
+      const returnUrl = getReturnUrl();
+      // if opened inside modal iframe, inform parent
+      try { window.parent.postMessage({ type: "vlab:user_input_cancel" }, "*"); } catch {}
+      window.location.href = returnUrl;
     });
 
-    const userAlertModal = document.getElementById("userAlertModal");
-    const userAlertMessage = document.getElementById("userAlertMessage");
-    const userAlertTitle = document.getElementById("userAlertTitle");
-    const userAlertClose = userAlertModal?.querySelector("[data-user-modal-close]");
-    let userAlertOnClose = null;
-
-    function showUserAlert(message, title = "Alert", onClose = null) {
-      if (!userAlertModal) {
-        alert(message);
-        if (typeof onClose === "function") onClose();
-        return;
-      }
-      if (userAlertTitle) userAlertTitle.textContent = title;
-      if (userAlertMessage) userAlertMessage.textContent = message;
-      userAlertOnClose = typeof onClose === "function" ? onClose : null;
-      userAlertModal.classList.add("show");
-      userAlertClose?.focus?.();
-    }
-
-    function closeUserAlert() {
-      if (!userAlertModal) return;
-      userAlertModal.classList.remove("show");
-      if (userAlertOnClose) {
-        const callback = userAlertOnClose;
-        userAlertOnClose = null;
-        callback();
-      }
-    }
-
-    if (userAlertClose) {
-      userAlertClose.addEventListener("click", closeUserAlert);
-    }
-
-    userAlertModal?.addEventListener("click", (event) => {
-      if (event.target === userAlertModal) {
-        closeUserAlert();
-      }
-    });
-
-    function handleSubmitSuccess() {
-      const returnUrl = getReturnURL();
-      const navigate = () => {
-        if (window.top !== window.self) {
-          window.top.postMessage(
-            { type: "vlab:user_input_submitted", returnUrl },
-            window.location.origin
-          );
-          return;
-        }
-        window.location.href = returnUrl;
-      };
-      showUserAlert("Submitted! Now you can generate your progress report.", "Success", navigate);
-    }
-
-    form.addEventListener("submit", (e) => {
+    document.getElementById("userForm").addEventListener("submit", (e) => {
       e.preventDefault();
+      clearError();
+
+      if (!window.VLProgress) {
+        showError("Progress tracker missing. Check ./progress_tracker.js path.");
+        return;
+      }
 
       const name = document.getElementById("name").value.trim();
       const email = document.getElementById("email").value.trim();
       const designation = document.getElementById("designation").value.trim();
 
-      emailErr.classList.add("hidden");
-      emailErr.textContent = "";
-
-      if (!emailAllowed(email)) {
-        emailErr.textContent = "Email must be from allowed domains only: " + ALLOWED_DOMAINS.map(d => "@" + d).join(", ");
-        emailErr.classList.remove("hidden");
+      if (!name || !email || !designation) {
+        showError("Please fill all fields.");
         return;
       }
 
-      // Save user + allow report
-      VLProgress.setUser({ name, email, designation });
-      VLProgress.logStep("User Form Submitted", { emailDomain: email.split("@").pop() });
+      if (!isAllowedEmail(email)) {
+        showError("Email domain not allowed. Use a permitted institutional email.");
+        return;
+      }
 
-      handleSubmitSuccess();
+      VLProgress.setUser({ name, email, designation });
+
+      const returnUrl = getReturnUrl();
+
+      // notify parent if inside iframe modal
+      try {
+        window.parent.postMessage({ type: "vlab:user_input_submitted", returnUrl }, "*");
+      } catch {}
+
+      window.location.href = returnUrl;
     });
   </script>
 </body>

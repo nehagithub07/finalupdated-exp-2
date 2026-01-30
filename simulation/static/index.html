@@ -548,59 +548,6 @@
   </audio>
 </body>
 
-<script src="../../progress_tracker.js"></script>
+<script src="../tracking.js"></script>
 <script src="../script/script.js"></script>
-
-<script>
-  // Track simulation page time + simulation start
-  if (window.VLProgress) VLProgress.initPage();
-
-  // Helper to log steps safely
-  function logStep(name, meta) {
-    if (window.VLProgress) VLProgress.logStep(name, meta || {});
-  }
-
-  // Attach step listeners by button label (no HTML change required)
-  window.addEventListener("DOMContentLoaded", () => {
-    const allBtns = Array.from(document.querySelectorAll("button"));
-    const findBtn = (label) => allBtns.find(b => (b.textContent || "").trim().toLowerCase() === label.toLowerCase());
-
-    const btnCheck = findBtn("Check");
-    const btnAuto  = findBtn("Auto Connect");
-    const btnAdd   = findBtn("Add To Table");
-    const btnReset = findBtn("Reset");
-    const btnGraph = findBtn("Graph");
-    const btnReport= findBtn("Report");
-    const btnPrint = findBtn("Print");
-
-    const bulbSelect = document.getElementById("number");
-
-    if (btnCheck) btnCheck.addEventListener("click", () => logStep("Simulation Step: Check Connections"));
-    if (btnAuto)  btnAuto.addEventListener("click", () => logStep("Simulation Step: Auto Connect"));
-    if (btnAdd)   btnAdd.addEventListener("click", () => {
-      logStep("Simulation Step: Add To Table", { bulbs: bulbSelect ? bulbSelect.value : "" });
-    });
-    if (btnGraph) btnGraph.addEventListener("click", () => logStep("Simulation Step: Graph Generated"));
-    if (btnPrint) btnPrint.addEventListener("click", () => logStep("Simulation Step: Print Clicked"));
-    if (btnReset) btnReset.addEventListener("click", () => logStep("Simulation Step: Reset"));
-
-    // Report gating
-    if (btnReport) btnReport.addEventListener("click", (e) => {
-      if (!window.VLProgress) return;
-
-      if (!VLProgress.hasUser()) {
-        e.preventDefault();
-        alert("To view the progress report, you must first fill in all your details in the user form.");
-        window.location.href = "../../user_input.html?return=../../progressreport.html";
-        return;
-      }
-
-      logStep("Progress Report Opened From Simulation");
-      // open report
-      window.open("../../progressreport.html", "_blank");
-    });
-  });
-</script>
- 
-
 </html>

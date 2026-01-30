@@ -13,7 +13,8 @@ body.is-modal-open {
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.3s ease, visibility 0s linear 0.3s;
-  z-index: 8000;
+  /* Keep above page overlays/modals (user input modal uses 100000). */
+  z-index: 200000;
 }
 
 .modal.show {
