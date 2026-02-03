@@ -1158,19 +1158,19 @@ h3 {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-left: 380px;
+  margin-left: 30px;
 }
 
 .graph-actions {
   position: relative;
   top: 420px;
-  left: 1035px;
+  left: 1010px;
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: nowrap;
 
-  transform: scale(0.52);
+  transform: scale(0.6);
   transform-origin: top left;
   width: max-content;
 }

@@ -1976,6 +1976,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
   font-size: 13px;
 }
   .vl-logo{
+  position: relative;
+  top: -20px
   height: 48px;
   max-width: 180px;
   object-fit: contain;
@@ -2019,7 +2021,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
 <body>
 <div class="header-row">
   <img src="../images/image.png" class="vl-logo" />
-  <h1>To study the Load Characteristics of DC shunt generator Simulation Report</h1>
+  <h1>Virtual Labs Simulation Report</h1>
 </div>
 
   <div class="section">
