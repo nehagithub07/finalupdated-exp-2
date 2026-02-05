@@ -982,10 +982,13 @@ function setupJsPlumb() {
       });
 
       if (!missing.length && !illegal.length) {
-        speakOrAlertLocal("Connections are correct. Click on the MCB to turn it ON.");
+        // Connections are correct; user will manually turn on the MCB.
         connectionsVerified = true;
         starterMoved = false;
         window.dispatchEvent(new CustomEvent(CONNECTION_VERIFIED_EVENT));
+        speakOrAlertLocal(
+          "Connections are correct. Click on the MCB to turn it ON."
+        );
         return;
       }
 
@@ -2392,8 +2395,6 @@ tr:nth-child(even) { background-color: #f8fbff; }
   window.addEventListener(CONNECTION_VERIFIED_EVENT, function () {
     connectionsVerified = true;
     starterMoved = false;
-    mcbOn = false;
-    sharedControls.setMcbState(false, { silent: true });
     sharedControls.updateControlLocks();
     updateRotorSpin();
     stepGuide.complete("connect");
