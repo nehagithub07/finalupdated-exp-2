@@ -988,46 +988,31 @@ function setupJsPlumb() {
         return;
       }
 
-      const formatList = (list, options = {}) =>
-        list
-          .slice(0, 5)
-          .map((k, index) => {
-            const label = formatConnectionDisplay(k);
-            if (!label) return "";
-            if (options.labelWrongExtras && !getConnectionNumber(k)) {
-              return `Wrong connection ${index + 1}: ${label}`;
-            }
-            return label;
-          })
-          .filter(Boolean)
-          .join(", ");
-      const formatSpeechList = (list, options = {}) =>
-        list
-          .slice(0, 5)
-          .map((k, index) => {
-            const speech = formatConnectionSpeech(k);
-            if (!speech) return "";
-            if (options.labelWrongExtras && !getConnectionNumber(k)) {
-              return `wrong connection ${index + 1}, ${speech}`;
-            }
-            return speech;
-          })
-          .filter(Boolean)
-          .join(", ");
-      let message = "Please make the connections first";
-    
-      let speechMessage = "Connection not correct.";
-      if (illegal.length) {
-        // message += `\nWrong/extra connections detected${illegal.length > 5 ? " (showing first few)" : ""}: ${formatList(illegal, { labelWrongExtras: true })}`;
-        speechMessage += ` Wrong connections: ${formatSpeechList(illegal, { labelWrongExtras: true })}.`;
+      // Find the next missing connection in defined order
+      let nextMissing = null;
+      for (const pair of requiredPairs) {
+        const [a, b] = pair.split("-");
+        const key = connectionKey(a, b);
+        if (!seenKeys.has(key)) {
+          nextMissing = key;
+          break;
+        }
       }
-      if (missing.length) {
-        // message += `\nMissing ${missing.length} required connection(s)${missing.length > 5 ? " (showing first few)" : ""}: ${formatList(missing)}`;
-        speechMessage += ` Missing connections: ${formatSpeechList(missing)}.`;
+
+      const firstIllegal = illegal[0] || null;
+      const message = "Please make all the connections first.";
+
+      let speechMessage = "Please make all the connections first.";
+      if (firstIllegal) {
+        speechMessage += ` Remove wrong connection ${formatConnectionSpeech(firstIllegal)}.`;
       }
-      if (guideSpeechActive()) {
-        speakLocal(speechMessage, { interruptFirst: true });
-      } else {
+      if (nextMissing) {
+        speechMessage += ` Next connection: ${formatConnectionSpeech(nextMissing)}.`;
+      }
+
+      // Always attempt to speak; still show popup fallback if speech is inactive.
+      speakLocal(speechMessage, { interruptFirst: true });
+      if (!guideSpeechActive()) {
         showPopup(message);
       }
       setMcbState(false, { silent: true });
@@ -3018,4 +3003,42 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (modal.classList.contains("is-hidden")) return;
     if (e.key === "Escape") closeComponentsModal({ showAlert: true });
   });
+})();
+
+/**
+ * Keep the printed layout identical to the on‑screen layout by dynamically
+ * scaling the panel to the available print width and locking the desktop
+ * breakpoints even inside the print dialog.
+ */
+(function setupPrintScaling() {
+  function updatePrintScale() {
+    const panel = document.querySelector(".panel");
+    if (!panel) return;
+
+    // Approximate printable width: viewport minus the 10mm page margins set in CSS
+    const pxPerMm = 3.78; // 96dpi → 1mm ≈ 3.78px
+    const marginPx = 10 * pxPerMm * 2; // left + right
+    const available = Math.max(320, window.innerWidth - marginPx);
+    const needed = Math.max(panel.scrollWidth || 0, panel.offsetWidth || 0);
+    if (!needed) return;
+
+    const scale = Math.min(1, Math.max(0.35, available / needed));
+    document.documentElement.style.setProperty("--print-scale", scale.toFixed(3));
+  }
+
+  function clearPrintScale() {
+    document.documentElement.style.removeProperty("--print-scale");
+  }
+
+  window.addEventListener("beforeprint", updatePrintScale);
+  window.addEventListener("afterprint", clearPrintScale);
+
+  if (window.matchMedia) {
+    const mq = window.matchMedia("print");
+    const listener = (e) => {
+      if (e.matches) updatePrintScale();
+    };
+    // Support modern and older browsers
+    mq.addEventListener ? mq.addEventListener("change", listener) : mq.addListener(listener);
+  }
 })();
