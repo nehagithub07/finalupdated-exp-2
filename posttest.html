@@ -248,6 +248,69 @@
     .border-blue-600 {
       border-color: #0b60a8;
     }
+
+    /* MCQ styling */
+    .mcq {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #f8fafc, #eef2ff);
+      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: linear-gradient(120deg, #ffffff, #f8fbff);
+      transition: all 160ms ease;
+      cursor: pointer;
+    }
+
+    .option-label:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 10px 20px rgba(14, 165, 233, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .option-label input {
+      accent-color: #0b60a8;
+      width: 18px;
+      height: 18px;
+    }
+
+    .option-label input:disabled {
+      opacity: 1;
+      filter: none;
+      cursor: default;
+    }
+
+    .option-label.disabled-option {
+      opacity: 0.82;
+      border-style: dashed;
+    }
+
+    .option-label.selected-option {
+      border-color: #0ea5e9;
+      background: linear-gradient(135deg, #e0f2fe, #eef2ff);
+      box-shadow: 0 12px 26px rgba(14, 165, 233, 0.22);
+    }
+
+    .option-label.correct-option {
+      border-color: #22c55e;
+      background: linear-gradient(135deg, #ecfdf3, #d1fae5);
+      box-shadow: 0 12px 26px rgba(34, 197, 94, 0.25);
+    }
+
+    .option-label.wrong-option {
+      border-color: #ef4444;
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      box-shadow: 0 12px 26px rgba(239, 68, 68, 0.22);
+    }
     #intro-text .intro-line {
       margin: 0 0 0.85rem;
       color: #1f2933;
@@ -535,7 +598,7 @@
               <span class="nav-user-text" data-user-text>User Input</span>
             </span>
           </a>
-          <a href="progressreport.html" class="nav-link">Progress Report</a>
+ 
         </nav>
       </div>
     </div>
@@ -712,9 +775,9 @@
 /* ------------------ 20 QUESTIONS ------------------ */
 const questions = [
   {id:1,text:'Armature magnetic field in a DC generator produces which of the following effect?',choices:['A: It demagnetizes or reduces the main flux','B: It cross-magnetizes the main flux','C: It magnetizes or reinforces the main flux','D: Both (a) and (b)'],answer:'D',selected:null},
-  {id:2,text:'In a DC generator, the polarity of the interpole is:',choices:['A: Always N','B: Always S','C: Same as the main pole ahead','D: Same as main pole behind'],answer:'C',selected:null},
+  {id:2,text:'Copper losses in the armature of the DC shunt generator amount to which of the following percentages of full load losses? ',choices:['A: 5 to 10%','B: 10 to 20%','C: 20 to 30%','D: 30 to 40%'],answer:'C',selected:null},
   {id:3,text:'In a DC generator, compared to the air gap under field poles, the interpole air gap is made:',choices:['A: Larger','B: Smaller','C: The same','D: Much smaller'],answer:'A',selected:null},
-  {id:4,text:'The function of using compensating winding in DC machines is to neutralize the:',choices:['A: Armature reaction in the interpole zone','B: Armature reaction in the commutating zone','C: Armature reaction under the pole faces','D: Cross-magnetizing armature reaction'],answer:'D',selected:null},
+  {id:4,text:'If the field current of a DC shunt generator is slightly reduced during operation, the terminal voltage will:',choices:['A:  Increase sharply','B: Decrease gradually','C: Remain unchanged','D: Become zero'],answer:'B',selected:null},
   {id:5,text:'The yoke of a DC generator is made of cast iron because:',choices:['A: It is cheaper','B: It completes the magnetic path','C: It gives mechanical protection','D: All of these'],answer:'D',selected:null},
   {id:6,text:'What happens to the terminal voltage of a DC shunt generator as load increases?',choices:['A: It increases','B: It decreases','C: It remains constant','D: It first increases then decreases'],answer:'B',selected:null},
   {id:7,text:'The main reason for the drop in terminal voltage under load is:',choices:['A: Armature resistance drop and armature reaction','B: Decrease in field resistance','C: Increase in field current','D: Decrease in speed'],answer:'A',selected:null},
@@ -741,7 +804,48 @@ const refreshBtn = document.getElementById("refresh-btn");
 const checkBtn = document.getElementById("check-btn");
 
 let currentSetIndices = []; // indices into `questions` array for the current shown set
-let attemptUsed = false;
+let setLocked = false;
+let autoRefreshTimer = null;
+let totalCorrect = readStoredNumber("vlab_exp2_posttest_score");
+let totalAttempted = readStoredNumber("vlab_exp2_posttest_total");
+let hasRenderedSet = false;
+
+function readStoredNumber(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function persistAssessmentTotals() {
+  const now = String(Date.now());
+  try {
+    localStorage.setItem("vlab_exp2_posttest_score", String(totalCorrect));
+    localStorage.setItem("vlab_exp2_posttest_total", String(totalAttempted));
+    localStorage.setItem("vlab_exp2_posttest_updated_at", now);
+    const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
+    if (activeHash) {
+      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_score`, String(totalCorrect));
+      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_total`, String(totalAttempted));
+      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_updated_at`, now);
+    }
+  } catch (e) {}
+
+  try {
+    const PREFIX = "VLAB_EXP2::";
+    let data = {};
+    if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
+      data = JSON.parse(window.name.slice(PREFIX.length)) || {};
+    }
+    data["vlab_exp2_posttest_score"] = String(totalCorrect);
+    data["vlab_exp2_posttest_total"] = String(totalAttempted);
+    data["vlab_exp2_posttest_updated_at"] = now;
+    window.name = PREFIX + JSON.stringify(data);
+  } catch (e) {}
+}
 
 /* ------------------ UTIL: pick random unique set ------------------ */
 function pickRandomSet() {
@@ -754,12 +858,27 @@ function pickRandomSet() {
   currentSetIndices = indices.slice(0, size);
   // reset selections for the newly chosen questions
   currentSetIndices.forEach(idx => questions[idx].selected = null);
+  setLocked = false;
+  if (autoRefreshTimer) {
+    clearTimeout(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
   showPage();
+
+  if (hasRenderedSet) {
+    showPopup("Questions refreshed. A new set has been loaded.", "Refreshed");
+  } else {
+    hasRenderedSet = true;
+  }
 }
 
 /* ------------------ RENDER CURRENT SET (Q1..Q5) ------------------ */
 function showPage() {
   container.innerHTML = "";
+  if (result) {
+    result.textContent = "";
+    result.classList.remove("text-green-600", "text-red-600");
+  }
   // Show the chosen 5 questions, numbering Q1..Q5
   currentSetIndices.forEach((qIndex, i) => {
     const q = questions[qIndex];
@@ -781,7 +900,7 @@ function showPage() {
     // attach change listeners to save selection into the question object
     div.querySelectorAll("input[type='radio']").forEach(inp => {
       inp.addEventListener("change", () => {
-        if (attemptUsed) return;
+        if (setLocked) return;
         q.selected = inp.value;
         lockQuestionInputs(div);
       });
@@ -791,8 +910,13 @@ function showPage() {
 }
 
 function lockQuestionInputs(div) {
+  div.querySelectorAll(".option-label").forEach(label => {
+    label.classList.remove("selected-option", "disabled-option", "correct-option", "wrong-option", "text-green-600", "text-red-600");
+  });
   div.querySelectorAll("input[type='radio']").forEach(input => {
     input.disabled = true;
+    if (input.checked) input.parentElement.classList.add("selected-option");
+    else input.parentElement.classList.add("disabled-option");
   });
 }
 
@@ -890,21 +1014,24 @@ function isPopupOpen() {
 
 /* ------------------ ATTEMPT GUARD ------------------ */
 function attemptAlreadyUsedAlert() {
-  showPopup("You have already submitted the posttest. You cannot change answers or retry.", "Notice");
+  showPopup("This set is already checked. A new set will load automatically.", "Notice");
 }
 
 function finalizeAttempt() {
-  attemptUsed = true;
+  setLocked = true;
   refreshBtn.disabled = true;
   checkBtn.disabled = true;
-  container.querySelectorAll("input[type='radio']").forEach(input => {
-    input.disabled = true;
-  });
+  if (autoRefreshTimer) clearTimeout(autoRefreshTimer);
+  autoRefreshTimer = setTimeout(() => {
+    refreshBtn.disabled = false;
+    checkBtn.disabled = false;
+    pickRandomSet();
+  }, 1600);
 }
 
 /* ------------------ CHECK ANSWERS for CURRENT SET ------------------ */
 function checkAnswers() {
-  if (attemptUsed) {
+  if (setLocked) {
     attemptAlreadyUsedAlert();
     return;
   }
@@ -932,7 +1059,7 @@ function checkAnswers() {
   let score = 0;
   // remove previous highlight classes
   container.querySelectorAll(".option-label").forEach(l => {
-    l.classList.remove("text-green-600", "text-red-600");
+    l.classList.remove("text-green-600", "text-red-600", "correct-option", "wrong-option");
   });
 
   currentSetIndices.forEach(qIndex => {
@@ -941,41 +1068,27 @@ function checkAnswers() {
     const selectedInput = container.querySelector(`input[name="q${q.id}"]:checked`);
     if (selectedInput.value === q.answer) {
       score++;
-      selectedInput.parentElement.classList.add("text-green-600");
+      selectedInput.parentElement.classList.remove("selected-option", "disabled-option");
+      selectedInput.parentElement.classList.add("text-green-600", "correct-option");
     } else {
-      selectedInput.parentElement.classList.add("text-red-600");
+      selectedInput.parentElement.classList.remove("selected-option", "disabled-option");
+      selectedInput.parentElement.classList.add("text-red-600", "wrong-option");
       const correctInput = container.querySelector(`input[name="q${q.id}"][value="${q.answer}"]`);
-      if (correctInput) correctInput.parentElement.classList.add("text-green-600");
+      if (correctInput) {
+        correctInput.parentElement.classList.remove("disabled-option");
+        correctInput.parentElement.classList.add("text-green-600", "correct-option");
+      }
     }
   });
 
-  result.innerHTML = `Your Score: ${score} / ${size}`;
+  const setTotal = currentSetIndices.length;
+  totalCorrect += score;
+  totalAttempted += setTotal;
+  persistAssessmentTotals();
+
+  result.innerHTML = `Set Score: ${score} / ${setTotal} • Overall: ${totalCorrect} / ${totalAttempted}`;
   result.classList.remove("text-green-600", "text-red-600");
-  result.classList.add(score === size ? "text-green-600" : "text-red-600");
-
-  try {
-    localStorage.setItem("vlab_exp2_posttest_score", String(score));
-    localStorage.setItem("vlab_exp2_posttest_total", String(size));
-    localStorage.setItem("vlab_exp2_posttest_updated_at", String(Date.now()));
-    const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
-    if (activeHash) {
-      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_score`, String(score));
-      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_total`, String(size));
-      localStorage.setItem(`vlab_exp2_user_${activeHash}_posttest_updated_at`, String(Date.now()));
-    }
-  } catch (e) {}
-
-  try {
-    const PREFIX = "VLAB_EXP2::";
-    let data = {};
-    if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
-      data = JSON.parse(window.name.slice(PREFIX.length)) || {};
-    }
-    data["vlab_exp2_posttest_score"] = String(score);
-    data["vlab_exp2_posttest_total"] = String(size);
-    data["vlab_exp2_posttest_updated_at"] = String(Date.now());
-    window.name = PREFIX + JSON.stringify(data);
-  } catch (e) {}
+  result.classList.add(score === setTotal ? "text-green-600" : "text-red-600");
 
   finalizeAttempt();
 }

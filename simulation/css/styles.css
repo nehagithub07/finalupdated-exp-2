@@ -1003,6 +1003,7 @@ h3 {
 }
 
 .observation-header {
+ 
   position: relative;
   right: 10px;
   display: flex;
@@ -1063,15 +1064,18 @@ h3 {
   border-collapse: collapse;
   background: #f4eee2;
   border: 2px solid var(--ink);
+  
 }
 
 #observationTable th,
 #observationTable td {
+   
   border: 1px solid var(--ink);
   padding: 8px;
   text-align: center;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 #observationTable thead {

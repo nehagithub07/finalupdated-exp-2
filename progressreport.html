@@ -365,11 +365,22 @@
       return;
     }
 
+    const simulationReport = getSimulationReportData();
+    if (!simulationReport || !simulationReport.html) {
+      setReportContainerVisible(false);
+      setReportLockedVisible(true);
+      showReportAlert(
+        "Complete the simulation and generate the report to view the Progress Report.",
+        "Notice"
+      );
+      return;
+    }
+
     setReportContainerVisible(true);
     setReportLockedVisible(false);
-    renderReport();
+    renderReport(simulationReport);
 
-    function renderReport() {
+    function renderReport(simReport) {
       if (!contentEl) return;
 
       const state = VLProgress.getState();
@@ -380,7 +391,6 @@
       const end = ts.reportViewedAt || new Date().toISOString();
       const totalMs = start ? (new Date(end).getTime() - new Date(start).getTime()) : 0;
 
-      const simulationReport = getSimulationReportData();
       const pretestData = getAssessmentData("pretest");
       const posttestData = getAssessmentData("posttest");
 
@@ -446,7 +456,7 @@
       `;
 
       contentEl.innerHTML = base;
-      renderSimulationReport(simulationReport);
+      renderSimulationReport(simReport);
     }
 
     function formatTimestamp(value) {

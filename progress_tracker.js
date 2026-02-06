@@ -141,6 +141,117 @@
     return `${hh}:${mm}:${ss}`;
   }
 
+  /* ------------------ PROGRESS REPORT ACCESS GUARD ------------------ */
+  function hasSimulationReport() {
+    try {
+      const activeHash = localStorage.getItem("vlab_exp2_active_user_hash") || "";
+      const keys = [];
+      if (activeHash) keys.push(`vlab_exp2_user_${activeHash}_simulation_report_html`);
+      keys.push("vlab_exp2_simulation_report_html");
+      for (const k of keys) {
+        const html = localStorage.getItem(k);
+        if (html && String(html).trim()) return true;
+      }
+    } catch {}
+
+    try {
+      const PREFIX = "VLAB_EXP2::";
+      if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
+        const data = JSON.parse(window.name.slice(PREFIX.length)) || {};
+        const html = (data["vlab_exp2_simulation_report_html"] || "").toString();
+        if (html.trim()) return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  function canAccessProgressReport() {
+    return hasUser() && hasSimulationReport();
+  }
+
+  function showReportBlockMessage(needsUser, needsSim) {
+    const msg = needsUser && needsSim
+      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
+      : needsUser
+        ? "Fill your user details before accessing Progress Report."
+        : "Complete the simulation and generate its report before accessing Progress Report.";
+
+    if (typeof window.showAimAlert === "function") window.showAimAlert(msg, "Notice");
+    else window.alert(msg);
+  }
+
+  let reportGuardsRegistered = false;
+
+  function setReportLinksDisabled(disabled) {
+    const links = Array.from(document.querySelectorAll("[data-progress-report-link], a[href*=\"progressreport\"]"));
+    links.forEach((link) => {
+      if (disabled) {
+        link.classList.add("opacity-50", "cursor-not-allowed");
+        link.setAttribute("aria-disabled", "true");
+        link.setAttribute("title", "Fill user details and complete the simulation to enable Progress Report");
+        link.style.opacity = "0.55";
+        link.style.cursor = "not-allowed";
+      } else {
+        link.classList.remove("opacity-50", "cursor-not-allowed");
+        link.removeAttribute("aria-disabled");
+        link.removeAttribute("title");
+        link.style.opacity = "";
+        link.style.cursor = "";
+      }
+    });
+  }
+
+  function ensureProgressReportState() {
+    const disabled = !canAccessProgressReport();
+    setReportLinksDisabled(disabled);
+  }
+
+  function registerProgressReportGuards() {
+    if (reportGuardsRegistered) return;
+    reportGuardsRegistered = true;
+
+    const links = Array.from(document.querySelectorAll("[data-progress-report-link], a[href*=\"progressreport\"]"));
+    // Force same-tab behaviour
+    links.forEach((link) => {
+      link.removeAttribute("target");
+      link.setAttribute("target", "_self");
+    });
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("a");
+      if (!target) return;
+      const href = (target.getAttribute("href") || "").toLowerCase();
+      const isProgressLink =
+        target.hasAttribute("data-progress-report-link") ||
+        href.includes("progressreport") ||
+        href === "#progressreport" ||
+        href.endsWith("#progressreport");
+      if (!isProgressLink) return;
+
+      const needsUser = !hasUser();
+      const needsSim = !hasSimulationReport();
+      if (!needsUser && !needsSim) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showReportBlockMessage(needsUser, needsSim);
+    }, true);
+
+    window.addEventListener("storage", ensureProgressReportState);
+    window.addEventListener("message", (event) => {
+      // Update state if simulation report is generated in another context
+      const allowedOrigin = window.location.origin;
+      const fromNullOrigin = event.origin === "null";
+      if (allowedOrigin !== "null" && event.origin !== allowedOrigin && !fromNullOrigin) return;
+      if (event.data && event.data.type === "vlab:simulation_report_generated") {
+        ensureProgressReportState();
+      }
+    });
+
+    // Initial state
+    ensureProgressReportState();
+  }
+
   function initPage() {
     const state = load();
     ensureSessionStart(state);
@@ -379,6 +490,13 @@
   window.addEventListener("pagehide", recordPageExit);
   window.addEventListener("beforeunload", recordPageExit);
 
+  // Register global progress-report guards once DOM is ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", registerProgressReportGuards, { once: true });
+  } else {
+    registerProgressReportGuards();
+  }
+
   window.VLProgress = {
     initPage,
     recordPageExit,
@@ -392,6 +510,9 @@
     getState: load,
     saveState: save,
     formatMs,
-    resetAll
+    resetAll,
+    canAccessProgressReport,
+    hasSimulationReport,
+    ensureProgressReportState: registerProgressReportGuards
   };
 })();

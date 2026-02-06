@@ -1476,7 +1476,7 @@
   <div
     id="intro-modal"
     class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-    data-intro-autoshow="always"
+    data-intro-autoshow="once"
     style="display: none;"
   >
     <div class="modal-container bg-white rounded-2xl shadow-xl flex flex-col overflow-hidden">
@@ -1851,22 +1851,39 @@
         videoEl.currentTime = 0;
       }
 
+      const shouldShowPostIntroNotice = !hasIntroBeenShown();
       document.body.classList.remove('body-blurred');
       if (introModal) introModal.style.display = 'none';
 
       markIntroAsShown();
       resetNarrationState();
-     if (window.VLProgress) VLProgress.mark("aimAfterIntro");
-      // The prompt logic is defined later in the page. If the user closes the
-      // intro very quickly (before that script runs), retry for a short time.
-      (function tryPrompt(attempt) {
-        if (typeof window.maybePromptUserForm === "function") {
-          window.maybePromptUserForm();
-          return;
+      if (window.VLProgress) VLProgress.mark("aimAfterIntro");
+
+      const proceedToUserPrompt = () => {
+        // The prompt logic is defined later in the page. If the user closes the
+        // intro very quickly (before that script runs), retry for a short time.
+        (function tryPrompt(attempt) {
+          if (typeof window.maybePromptUserForm === "function") {
+            window.maybePromptUserForm();
+            return;
+          }
+          if (attempt >= 25) return; // ~2.5s max
+          setTimeout(() => tryPrompt(attempt + 1), 100);
+        })(0);
+      };
+
+      if (shouldShowPostIntroNotice) {
+        const noticeMessage = "Now that you've understood the experiment workflow, you may proceed to perform the experiment independently at your own pace.";
+        if (typeof window.showAimAlert === "function") {
+          window.showAimAlert(noticeMessage, "All set", proceedToUserPrompt);
+        } else {
+          alert(noticeMessage);
+          proceedToUserPrompt();
         }
-        if (attempt >= 25) return; // ~2.5s max
-        setTimeout(() => tryPrompt(attempt + 1), 100);
-      })(0);
+      } else {
+        proceedToUserPrompt();
+      }
+
       // Always go to aim section (you are on aim.html anyway)
       const aimSection = document.getElementById('aim');
       if (aimSection) {
@@ -2724,6 +2741,8 @@
     aimAlertClose?.focus?.();
   }
 
+  window.showAimAlert = showAimAlert;
+
   function closeAimAlert() {
     if (!aimAlertModal) return;
     aimAlertModal.classList.remove("show");
@@ -2805,6 +2824,8 @@
           }
         } catch (e) {}
       }
+
+      ensureProgressReportState();
       return;
     }
 
@@ -2816,6 +2837,7 @@
     if (data.type !== "vlab:user_input_submitted") return;
     closeUserInputModal();
     refreshUserInputNavLabel();
+    ensureProgressReportState();
     if (data.returnUrl) {
       window.location.href = data.returnUrl;
     }
@@ -2830,11 +2852,34 @@
     link.setAttribute("target", "_self");
   });
 
+  function hasSimulationReport() {
+    try {
+      const activeHash = localStorage.getItem("vlab_exp2_active_user_hash") || "";
+      const keys = [];
+      if (activeHash) keys.push(`vlab_exp2_user_${activeHash}_simulation_report_html`);
+      keys.push("vlab_exp2_simulation_report_html");
+      for (const k of keys) {
+        const html = localStorage.getItem(k);
+        if (html && String(html).trim()) return true;
+      }
+    } catch {}
+
+    try {
+      const PREFIX = "VLAB_EXP2::";
+      if (typeof window.name === "string" && window.name.startsWith(PREFIX)) {
+        const data = JSON.parse(window.name.slice(PREFIX.length)) || {};
+        const html = (data["vlab_exp2_simulation_report_html"] || "").toString();
+        if (html.trim()) return true;
+      }
+    } catch {}
+    return false;
+  }
+
   function disableProgressReportUI() {
     progressReportLinks.forEach((link) => {
       link.classList.add("opacity-50", "cursor-not-allowed");
       link.setAttribute("aria-disabled", "true");
-      link.setAttribute("title", "Fill the user form to enable Progress Report");
+      link.setAttribute("title", "Fill the user form and complete the simulation to enable Progress Report");
       // Fallback if Tailwind classes are unavailable (offline).
       link.style.opacity = "0.55";
       link.style.cursor = "not-allowed";
@@ -2851,12 +2896,13 @@
     });
   }
 
-  // If already filled user form, ensure enabled
-  if (VLProgress.hasUser()) {
-    enableProgressReportUI();
-  } else {
-    disableProgressReportUI();
+  function ensureProgressReportState() {
+    if (VLProgress.hasUser() && hasSimulationReport()) enableProgressReportUI();
+    else disableProgressReportUI();
   }
+
+  ensureProgressReportState();
+  window.addEventListener("storage", ensureProgressReportState);
 
   // YES → go to form
   if (yesBtn) yesBtn.addEventListener("click", () => {
@@ -2874,17 +2920,22 @@
   // Block progress report access unless form is filled
   progressReportLinks.forEach((link) => {
     link.addEventListener("click", function (e) {
-      if (VLProgress.hasUser()) {
+      const needUser = !VLProgress.hasUser();
+      const needSim = !hasSimulationReport();
+      if (!needUser && !needSim) {
         enableProgressReportUI();
         return;
       }
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      showAimAlert(
-        "You have to first fill the user details then you can generate the report.",
-        "Notice"
-      );
+      const msg = needUser && needSim
+        ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
+        : needUser
+          ? "Fill your user details before accessing Progress Report."
+          : "Complete the simulation and generate its report before accessing Progress Report.";
+
+      showAimAlert(msg, "Notice");
     }, true);
   });
 
@@ -2899,21 +2950,25 @@
       href === "#progressreport" ||
       href.endsWith("#progressreport");
     if (!isProgressLink) return;
-    if (VLProgress.hasUser()) return;
+    if (VLProgress.hasUser() && hasSimulationReport()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    showAimAlert(
-      "You have to first fill the user details then you can generate the report.",
-      "Notice"
-    );
+    const msg = (!VLProgress.hasUser() && !hasSimulationReport())
+      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
+      : (!VLProgress.hasUser())
+        ? "Fill your user details before accessing Progress Report."
+        : "Complete the simulation and generate its report before accessing Progress Report.";
+    showAimAlert(msg, "Notice");
   }, true);
 
   // If user loads aim.html#progressreport directly without user form
-  if (window.location.hash === "#progressreport" && !VLProgress.hasUser()) {
-    showAimAlert(
-      "You have to first fill the user details then you can generate the report.",
-      "Notice"
-    );
+  if (window.location.hash === "#progressreport" && (!VLProgress.hasUser() || !hasSimulationReport())) {
+    const msg = (!VLProgress.hasUser() && !hasSimulationReport())
+      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
+      : (!VLProgress.hasUser())
+        ? "Fill your user details before accessing Progress Report."
+        : "Complete the simulation and generate its report before accessing Progress Report.";
+    showAimAlert(msg, "Notice");
   }
 
   // If intro is not shown (already shown earlier), still prompt on load (optional but useful)
