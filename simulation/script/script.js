@@ -1644,9 +1644,10 @@ document.addEventListener("keydown", (e) => {
   const voltmeter2Readings = [220, 212, 208, 205, 200, 195, 189, 184, 179, 176];
   // Optional manual needle angles (degrees) per bulb index; edit as needed.
   const ammeter1ManualAngles = [-62, -60.4, -50.1, -47.5, -42.0, -32.1, -26.0, -15.9, -6.3, 2.8];
-  const ammeter2ManualAngles = [-69.1, -59.2, -57.0, -55.9, -49.6, -45.4, -37, -28.0, -27, -18];
-  const voltmeter1ManualAngles = [1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9];
-  const voltmeter2ManualAngles = [0.3, -5.9, -7.5, -7.7, -7.9, -7.8, -7.4, -6.8, -14.9, -15.7];
+  const ammeter2ManualAngles = [-69.1, -59.2, -59.0, -57.9, -52.6, -48.8, -44.8, -32.0, -29, -20];
+  // Override voltmeter-1 dial to land on ~225 V once starter is on.
+  const voltmeter1ManualAngles = [5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5];
+  const voltmeter2ManualAngles = [0.3, -6.2, -7.5, -7.7, -7.9, -7.8, -7.4, -6.8, -14.9, -15.7];
 
   const readingsRecorded = [];
   let selectedIndex = -1;
@@ -1655,6 +1656,7 @@ document.addEventListener("keydown", (e) => {
   let graphReadyAnnounced = false;
   let graphPlotAlertShown = false;
   let graphPlotted = false;
+  let allReadingsAlertShown = false;
 
   function speechIsActive() {
     return (
@@ -1715,7 +1717,9 @@ document.addEventListener("keydown", (e) => {
   // Show supply voltage as soon as the starter handle is moved to ON.
   window.addEventListener(STARTER_MOVED_EVENT, () => {
     if (!needle3) return;
-    setNeedleRotation(needle3, voltageToAngle(225));
+    // Use the same calibrated/manual angle used during readings.
+    const starterAngle = resolveAngle(voltmeter1ManualAngles, 0, voltageToAngle(225));
+    setNeedleRotation(needle3, starterAngle);
   });
 
   // Park voltmeter-1 when the MCB is turned off.
@@ -1964,13 +1968,16 @@ tr:nth-child(even) { background-color: #f8fbff; }
 }
 .header-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 26px;
-  gap: 12px;
-  flex-wrap: wrap;
 }
-.header-row h1 { flex: 1; }
+.header-row h1 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
 .badge {
   padding: 8px 14px;
   border-radius: 20px;
@@ -1979,12 +1986,12 @@ tr:nth-child(even) { background-color: #f8fbff; }
   font-weight: 600;
   font-size: 13px;
 }
-  .vl-logo{
-  position: relative;
-  top: -20px
-  height: 48px;
+.vl-logo {
+  height: 70px;
+  width: auto;
   max-width: 180px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 .report-actions {
   display: flex;
@@ -2045,8 +2052,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
 </head>
 <body id="report-root">
 <div class="header-row">
-  <img src="../images/image.png" class="vl-logo" />
+  <img src="../images/IIT Logo.png" class="vl-logo" />
   <h1>Virtual Labs Simulation Report</h1>
+  <img src="../images/image.png" class="vl-logo" />
 </div>
 
   <div class="section">
@@ -2066,7 +2074,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     <p style="text-align:justify;">To study the external characteristic of a DC shunt generator by varying the lamp load, measuring the terminal voltage and load current, and plotting the terminal voltage versus load current (V–I) curve.</p>
 
     <h3>Simulation Summary</h3>
-    <p style="text-align:justify;">Connections were completed as instructed, supply was switched on, lamp load was varied, and the corresponding load current and terminal voltage readings were recorded, and a graph was generated between terminal voltage and load current.</p>
+    <p style="text-align:justify;">Connections were completed as instructed, supply was switched ON, lamp load was varied, and the corresponding load current and terminal voltage readings were recorded, and a graph was generated between terminal voltage and load current.</p>
 
     <h3>Components and key Parameters</h3>
     <ul class="two-column-list">
@@ -2077,7 +2085,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
       <li>Load Type: Resistive Lamp Load</li>
       <li>Bulbs: 10 × 200 W each</li>
       <li>DC Voltmeter: 0-240 V</li>
-      <li>DC Ammeter:0-20 A</li>
+      <li>DC Ammeter: 0-20 A</li>
       <li>Connecting Leads</li>
     </ul>
  
@@ -2193,35 +2201,40 @@ tr:nth-child(even) { background-color: #f8fbff; }
       return;
     }
 
+    try {
+      reportWindow.document.open("text/html", "replace");
+      reportWindow.document.write(html);
+      reportWindow.document.close();
+      reportWindow.focus();
+    } catch (err) {
       try {
-        reportWindow.document.open("text/html", "replace");
-        reportWindow.document.write(html);
-        reportWindow.document.close();
-        reportWindow.focus();
-        showPopup(
-          "Report generated. You can now print it or reset the experiment.",
-          "Report Ready"
-        );
-        speak(
-          "Report opened in a new tab. You can print it from the report window, or use Reset to start again."
-        );
-      } catch (err) {
-        try {
-          const blob = new Blob([html], { type: "text/html" });
-          const url = URL.createObjectURL(blob);
-          reportWindow.location = url;
-          showPopup(
-            "Report generated. You can now print it or reset the experiment.",
-            "Report Ready"
-          );
-          setTimeout(function () {
-            URL.revokeObjectURL(url);
-          }, 5000);
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        reportWindow.location = url;
+        setTimeout(function () {
+          URL.revokeObjectURL(url);
+        }, 5000);
       } catch (err2) {
         console.error("Report generation failed:", err2);
         speakOrAlert("Unable to render the report. Please disable popup blockers and try again.");
       }
     }
+  }
+
+  function handleReportClick() {
+    if (!graphPlotted) {
+      speakOrAlert("Please plot the graph before generating the report.");
+      return;
+    }
+    showPopup(
+      "Report will open in a new tab. Please allow pop-ups.",
+      "Opening Report"
+    );
+    if (speechIsActive()) {
+      speak("Opening the report in a new tab. Please allow pop ups.");
+    }
+    // Slight delay so the alert is visible before the new tab steals focus
+    setTimeout(() => generateReport(), 250);
   }
 
   function addRowToTable(idx) {
@@ -2255,7 +2268,13 @@ tr:nth-child(even) { background-color: #f8fbff; }
 
     const load = selectedIndex + 1;
     if (readingsRecorded.some((reading) => reading.load === load)) {
-      speakOrAlert("This bulb load already exists in the table. Choose a different load.");
+      showPopup(
+        "This bulb load already exists in the table. Choose a different load.",
+        "Duplicate Reading"
+      );
+      if (speechIsActive()) {
+        speak("This bulb load is already recorded. Choose a different load value.");
+      }
       readingArmed = false;
       return;
     }
@@ -2272,6 +2291,16 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (!addReadingAlertShown) {
       addReadingAlertShown = true;
       showPopup("Reading added to the observation table.", "Observation");
+    }
+    if (!allReadingsAlertShown && readingsRecorded.length === 10) {
+      allReadingsAlertShown = true;
+      showPopup(
+        "All 10 readings are recorded. Plot the graph, then click Report to generate your report.",
+        "All Readings Added"
+      );
+      speak(
+        "All ten readings have been added. Please plot the graph and then click the Report button to view your report."
+      );
     }
     readingArmed = false;
     stepGuide.complete("reading");
@@ -2366,6 +2395,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     graphReadyAnnounced = false;
     graphPlotAlertShown = false;
     graphPlotted = false;
+    allReadingsAlertShown = false;
 
     // Re-enable primary controls after reset
     const resetCheckBtn = findButtonByLabel("Check") || findButtonByLabel("Check Connections");
@@ -2441,7 +2471,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     });
   }
   if (reportBtn) {
-    reportBtn.addEventListener("click", generateReport);
+    reportBtn.addEventListener("click", handleReportClick);
     reportBtn.disabled = true;
   }
 
@@ -2772,8 +2802,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
     const componentsFrame = modal.querySelector("iframe");
     const openBtns = document.querySelectorAll("[data-open-components]");
 
-  // Keep "Skip" for the current tab only (shows again on full reload).
-  const STORAGE_KEY = "vl_components_skipped";
+  // Storage helpers
+  const STORAGE_KEY = "vl_components_skipped"; // session only
   const STORAGE =
     (() => {
       try {
@@ -2782,6 +2812,45 @@ tr:nth-child(even) { background-color: #f8fbff; }
         return null;
       }
     })();
+  const PERSISTENT_STORAGE =
+    (() => {
+      try {
+        return window.localStorage;
+      } catch (e) {
+        return STORAGE; // graceful fallback
+      }
+    })();
+  const COMPONENTS_SEEN_KEY = "vl_components_seen";
+  const COMPONENTS_ALERT_KEY = "vl_components_alert_shown";
+
+  const hasSeenComponents = () => {
+    if (!PERSISTENT_STORAGE) return false;
+    try {
+      return PERSISTENT_STORAGE.getItem(COMPONENTS_SEEN_KEY) === "1";
+    } catch (e) {
+      return false;
+    }
+  };
+  const markComponentsSeen = () => {
+    if (!PERSISTENT_STORAGE) return;
+    try {
+      PERSISTENT_STORAGE.setItem(COMPONENTS_SEEN_KEY, "1");
+    } catch (e) {}
+  };
+  const hasShownComponentsAlert = () => {
+    if (!PERSISTENT_STORAGE) return false;
+    try {
+      return PERSISTENT_STORAGE.getItem(COMPONENTS_ALERT_KEY) === "1";
+    } catch (e) {
+      return false;
+    }
+  };
+  const markComponentsAlertShown = () => {
+    if (!PERSISTENT_STORAGE) return;
+    try {
+      PERSISTENT_STORAGE.setItem(COMPONENTS_ALERT_KEY, "1");
+    } catch (e) {}
+  };
 
   const AUDIO_STORAGE_KEY = "vl_components_audio_played";
   const AUDIO_STORAGE =
@@ -2821,6 +2890,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     "Now that you are familiar with all the components used in this experiment, you may now start the experiment.\n\nAn AI guide is available to assist you at every step.";
 
   function showComponentsExitAlert() {
+    if (hasShownComponentsAlert()) return;
+    markComponentsAlertShown();
+
     const speakBtn = document.querySelector(".speak-btn");
     const ATTENTION_CLASS = "speak-attention";
 
@@ -2938,22 +3010,25 @@ tr:nth-child(even) { background-color: #f8fbff; }
         return;
       }
       if (data.type === "components-tour-complete") {
-        closeComponentsModal({ skip: true });
-        showComponentsExitAlert();
+        closeComponentsModal({ skip: true, showAlert: true });
         return;
       }
     });
 
-    function openComponentsModal({ force = false } = {}) {
-      if (!force && STORAGE) {
-        try {
-          if (STORAGE.getItem(STORAGE_KEY) === "1") return;
-        } catch (e) {}
+    function openComponentsModal({ force = false, auto = false } = {}) {
+      if (!force) {
+        if (auto && hasSeenComponents()) return;
+        if (STORAGE) {
+          try {
+            if (STORAGE.getItem(STORAGE_KEY) === "1") return;
+          } catch (e) {}
+        }
       }
       modal.classList.remove("is-hidden");
       document.body.classList.add("is-modal-open");
       requestAudioState();
       maybeAutoPlayAudio();
+      if (auto) markComponentsSeen();
     }
 
     function closeComponentsModal({ skip = false, showAlert = false } = {}) {
@@ -2978,7 +3053,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
 
   // Auto open when page loads
   window.addEventListener("load", () => {
-    setTimeout(() => openComponentsModal(), 250);
+    setTimeout(() => openComponentsModal({ auto: true }), 250);
   });
 
   // Open via icons/buttons
