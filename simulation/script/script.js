@@ -1690,7 +1690,7 @@ document.addEventListener("keydown", (e) => {
   const ammeter2ManualAngles = [-63.1, -58.9, -57, -54.9, -46.8, -38.7, -33.8, -24.0, -20, -13];
   // Override voltmeter-1 dial to land on ~225 V once starter is on.
   const voltmeter1ManualAngles = [5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5];
-  const voltmeter2ManualAngles = [0.3, -6.2, -7.5, -7.7, -7.9, -7.8, -7.4, -6.8, -14.9, -15.7];
+  const voltmeter2ManualAngles = [3, 1, -1, -3, -5, -7.8, -10, -13, -17, -20];
 
   const readingsRecorded = [];
   let selectedIndex = -1;
