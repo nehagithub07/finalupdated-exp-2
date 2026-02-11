@@ -940,15 +940,8 @@ function lockQuestionInputs(div) {
 
 function updateCheckButtonState() {
   if (!checkBtn) return;
-  if (setLocked) {
-    checkBtn.disabled = true;
-    return;
-  }
-  const allAnswered = currentSetIndices.every((qIndex) => {
-    const q = questions[qIndex];
-    return !!container.querySelector(`input[name="q${q.id}"]:checked`);
-  });
-  checkBtn.disabled = !allAnswered;
+  // Keep the button clickable so we can show alerts even when answers are missing.
+  checkBtn.disabled = false;
 }
 
  let popupOnClose = null;
@@ -1050,7 +1043,6 @@ function attemptAlreadyUsedAlert() {
 
 function finalizeAttempt() {
   setLocked = true;
-  checkBtn.disabled = true;
   // Lock current selections to prevent re-submission tweaks
   container.querySelectorAll("input[type='radio']").forEach(input => {
     input.disabled = true;
@@ -1072,7 +1064,7 @@ function checkAnswers() {
     const firstInput = first
       ? container.querySelector(`input[name="q${first.id}"]`)
       : null;
-    showPopup("Please complete all the questions before checking the answers.", "Reminder", {
+    showPopup("Please attend all the questions before checking the answers.", "Reminder", {
       onClose: () => {
         try {
           firstInput?.scrollIntoView({ behavior: "smooth", block: "center" });

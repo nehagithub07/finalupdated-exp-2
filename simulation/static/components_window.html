@@ -187,6 +187,10 @@
             box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 10px 16px rgba(60, 54, 46, 0.18);
             transition: transform var(--dur-fast) var(--ease-in), opacity var(--dur-fast) var(--ease-in);
         }
+        .component-media.component-media--large {
+            width: 220px; /* keep width same as default, boost height only */
+            height: 260px;
+        }
         .component-media img {
             max-width: 100%;
             max-height: 100%;
@@ -283,6 +287,7 @@
             font-weight: 700;
             color: #2f5a78;
         }
+         
         @keyframes panelIn {
             from {
                 opacity: 0;
@@ -392,6 +397,9 @@
                 width: 100%;
                 height: 200px;
             }
+            .component-media.component-media--large {
+                height: 240px;
+            }
             .component-controls {
                 justify-content: center;
             }
@@ -450,6 +458,10 @@
             height: 170px;
             padding: 12px;
         }
+        body.embed .component-media.component-media--large {
+            width: 210px;
+            height: 210px;
+        }
         body.embed .component-definition {
             max-width: none;
         }
@@ -473,6 +485,10 @@
                 width: 170px;
                 height: 170px;
             }
+            body.embed .component-media.component-media--large {
+                width: 210px;
+                height: 210px;
+            }
             body.embed .component-controls {
                 justify-content: center;
             }
@@ -492,6 +508,9 @@
             body.embed .component-media {
                 width: 100%;
                 height: 180px;
+            }
+            body.embed .component-media.component-media--large {
+                height: 210px;
             }
             body.embed .component-controls {
                 justify-content: center;
@@ -545,7 +564,7 @@
                 name: "MCB",
                 image: "../images/Components/mcb-on.png",
                 description:
-                    "An MCB (Miniature Circuit Breaker) is an automatically operated electrical switching device used to protect a circuit from overcurrent, short circuit, or excessive load. It disconnects the circuit when abnormal conditions occur.",
+                    "An MCB (Miniature Circuit Breaker) is an automatically operated electrical switching device used to protect an electrical circuit from overcurrent, short circuit, or excessive load. It acts as a safety device and disconnects the circuit when abnormal conditions occur.",
                 audio: "../audio/mcb.wav"
             },
             {
@@ -553,7 +572,7 @@
                 name: "3-Point Starter",
                 image: "../images/Components/Starter.png",
                 description:
-                    "A 3-point starter safely starts DC shunt and compound motors. It limits starting current, provides overload protection, and ensures smooth acceleration by gradually reducing resistance.",
+                    "A 3-point starter is a device used to safely start DC shunt and compound motors. It limits the starting current and provides overload protection to the motor. It ensures smooth acceleration by gradually reducing resistance as the motor gains speed, providing a safe start.",
                 audio: "../audio/3pointstarter.wav"
             },
             {
@@ -561,7 +580,7 @@
                 name: "DC Shunt Motor",
                 image: "../images/Components/shuntmotor.png",
                 description:
-                    "In this experiment, the DC motor acts as a prime mover, converting electrical energy into mechanical energy. Its shaft is mechanically coupled to the DC shunt generator, and it receives the supply through the MCB and starter.",
+                    "In this experiment, the DC shunt motor acts as a prime mover, converting electrical energy into mechanical energy. Its shaft is mechanically coupled to the DC shunt generator, and it receives the supply through the MCB and starter.",
                 audio: "../audio/dcMotor.wav"
             },
             {
@@ -569,7 +588,7 @@
                 name: "DC Shunt Generator",
                 image: "../images/Components/DC-Shunt-Generator.png",
                 description:
-                    "The DC shunt generator converts the mechanical energy received from the motor into electrical energy, producing DC output voltage and current. Its terminals are connected to an ammeter in series and a voltmeter in parallel for measurement.",
+                    "The DC shunt generator converts the mechanical energy received from the motor into electrical energy, producing DC output voltage and current, which is then supplied to the lamp load, while its terminals are connected to an ammeter in series and a voltmeter in parallel for measurement.",
                 audio: "../audio/dcShuntGenerator.wav"
             },
             
@@ -578,7 +597,7 @@
                 name: "Lamp Load",
                 image: "../images/Components/LampBoard.png",
                 description:
-                    "A lamp load is used as a variable resistive load to study the load characteristics of a DC shunt generator. It helps observe how the terminal voltage varies with the load current.",
+                    "A lamp load is used as a variable resistive load to study the load characteristics of a DC shunt generator. It helps in observing how the terminal voltage varies with the load current.",
                 audio: "../audio/lampLoad.wav"
             },
             
@@ -587,8 +606,8 @@
                 name: "DC Ammeter 1",
                 image: "../images/Components/ammeter.png",
                 description:
-                    "This ammeter is connected in series with the DC motor. Its purpose is to measure the current drawn by the DC motor while it is operating.",
-                audio: "../audio/ammeter.wav"
+                    "This ammeter is connected in series with the DC shunt motor. Its purpose is to measure the current drawn by the DC shunt motor while it is operating.",
+                audio: "../audio/ammeter1.wav"
             },
             {
                 key: "voltmeter",
@@ -596,7 +615,7 @@
                 image: "../images/Components/voltmeter.png",
                 description:
                     "It is connected in parallel across the MCB. The purpose of this voltmeter is to measure the voltage of the main supply.",
-                audio: "../audio/voltmeter.wav"
+                audio: "../audio/voltmeter1.wav"
             },
             {
                 key: "ammeter",
@@ -604,7 +623,7 @@
                 image: "../images/Components/ammeter.png",
                 description:
                     "It is connected in series with the lamp load to measure the load current (IL) delivered by the DC shunt generator.",
-                audio: "../audio/ammeter.wav"
+                audio: "../audio/ammeter2.wav"
             },
             {
                 key: "voltmeter",
@@ -612,7 +631,6 @@
                 image: "../images/Components/voltmeter.png",
                 description:
                     "It is connected in parallel across the generator terminals to measure the terminal voltage (V) of the DC shunt generator.",
-                audio: "../audio/voltmeter.wav"
             },
             
            
@@ -621,6 +639,7 @@
 
         const thumbsEl = document.getElementById("componentThumbs");
         const cardEl = document.getElementById("componentCard");
+        const mediaEl = document.querySelector(".component-media");
         const imageEl = document.getElementById("componentImage");
         const titleEl = document.getElementById("componentTitle");
         const definitionEl = document.getElementById("componentDefinition");
@@ -901,6 +920,9 @@
         }
 
         function applyComponent(component) {
+            if (mediaEl) {
+                mediaEl.classList.toggle("component-media--large", component.key === "ammeter");
+            }
             imageEl.src = component.image;
             imageEl.alt = component.name;
             titleEl.textContent = component.name;
