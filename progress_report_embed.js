@@ -116,6 +116,31 @@
     return hasEmbeddedProgressSection();
   }
 
+  function showEmbeddedProgressSection() {
+    const progressSection = document.getElementById('progressreport');
+    if (!progressSection) return false;
+
+    const sections = Array.from(document.querySelectorAll('.section-content'));
+    if (sections.length) {
+      sections.forEach((section) => {
+        if (section === progressSection) {
+          section.classList.remove('hidden');
+        } else {
+          section.classList.add('hidden');
+        }
+      });
+    } else {
+      progressSection.classList.remove('hidden');
+    }
+
+    try {
+      progressSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch {
+      progressSection.scrollIntoView();
+    }
+    return true;
+  }
+
   function getProgressHrefTarget() {
     return shouldEmbedProgress() ? '#progressreport' : 'progressreport.html';
   }
@@ -435,8 +460,15 @@
     }
 
     const handleProgressLinkClick = (event) => {
+      const embedded = shouldEmbedProgress();
       if (VP().hasUser()) {
         enableProgressReportUI();
+        if (embedded) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          showEmbeddedProgressSection();
+          try { history.replaceState({}, '', '#progressreport'); } catch {}
+        }
         return;
       }
       event.preventDefault();
@@ -490,6 +522,15 @@
         return;
       }
 
+      const wantsEmbedded = shouldEmbedProgress() && (href.startsWith('#') || href.endsWith('#progressreport'));
+      if (wantsEmbedded) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        showEmbeddedProgressSection();
+        try { history.replaceState({}, '', '#progressreport'); } catch {}
+        return;
+      }
+
       const isExternalProgressPage = !href.startsWith('#') || href.includes('.html');
       if (isExternalProgressPage) {
         event.preventDefault();
@@ -497,15 +538,26 @@
       }
     }, true);
 
-    if (isAimPage) {
-      window.addEventListener('hashchange', setActiveMenu);
+    if (shouldEmbedProgress()) {
+      if (window.location.hash === '#progressreport') {
+        showEmbeddedProgressSection();
+        if (!VP().hasUser()) {
+          showAimAlert(
+            'You have to first fill the user details then you can generate the report.',
+            'Notice'
+          );
+        }
+      }
+
+      window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#progressreport') {
+          showEmbeddedProgressSection();
+        }
+      });
     }
 
-    if (isAimPage && window.location.hash === '#progressreport' && !VP().hasUser()) {
-      showAimAlert(
-        'You have to first fill the user details then you can generate the report.',
-        'Notice'
-      );
+    if (isAimPage) {
+      window.addEventListener('hashchange', setActiveMenu);
     }
 
     window.maybePromptUserForm = function maybePromptUserForm() {
