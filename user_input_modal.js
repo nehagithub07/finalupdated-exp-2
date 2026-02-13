@@ -381,8 +381,8 @@
       event.preventDefault();
       event.stopImmediatePropagation();
       showThemedAlert(
-        "You have to first fill the user details then you can generate the report.",
-        "Notice"
+        "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.",
+        "Instructions"
       );
     }, true);
 

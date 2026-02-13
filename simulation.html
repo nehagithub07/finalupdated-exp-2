@@ -862,7 +862,7 @@
       </div>
 
       <!-- References Content -->
-       <div class="division">
+       <div class="division section-content">
     
             <section id="v1-card" class="section-content vl-card p-6 animate-fadeInUp cta-card">
               <a
@@ -1143,7 +1143,6 @@
     (function initSimulationTabsAlert() {
       const message =
         "The Simulation section contains two tabs. The Demo tab provides a guided walkthrough on how to run the simulation, while the Simulation tab allows you to perform the experiment independently.\n\nClick on the Demo tab to view the demo.";
-
       function highlightDemoTab(durationMs = 12000) {
         const demoCard = document.getElementById('v1-card');
         if (!demoCard) return;
@@ -1195,7 +1194,7 @@
     const videoModal = document.getElementById('video-modal');
     const videoPlayer = document.getElementById('demo-video-player');
     const videoCloseBtn = document.getElementById('video-modal-close');
-    const demoIncompleteMessage = 'to proceed further Please complete the demo first';
+    const demoIncompleteMessage = "To proceed further, please complete the demo first.";
 
     function isDemoVideoComplete() {
       if (!videoPlayer) return false;
@@ -1227,7 +1226,7 @@
 
       if (!completed) {
         window.setTimeout(() => {
-          showPopup(demoIncompleteMessage, 'Instruction');
+          showPopup(demoIncompleteMessage, 'Instruction', { center: true });
         }, 50);
       }
     }

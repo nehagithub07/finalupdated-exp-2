@@ -23,12 +23,17 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    body { font-family: 'Inter', sans-serif; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #ffffff;
+      color: #111827;
+    }
 
     .vl-header {
-      height: 70px;
-      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
-      box-shadow: 0 10px 30px rgba(2, 26, 44, 0.35);
+      min-height: 70px;
+      background: #ffffff;
+      border-bottom: 1px solid #d1d5db;
+      box-shadow: none;
     }
     .header-inner {
       max-width: 1200px;
@@ -41,56 +46,195 @@
     .top-nav { gap: 1.5rem; align-items: center; }
     .nav-link {
       position: relative;
-      color: #e2e8f0;
-      font-weight: 600;
+      color: #1f2937;
+      font-weight: 500;
       padding: 0.5rem 1rem;
-      transition: color 150ms ease, transform 150ms ease;
+      transition: background-color 150ms ease;
       border-radius: 0.375rem;
       text-decoration: none;
     }
-    .nav-link::after {
-      content: '';
-      position: absolute;
-      left: 0; right: 0;
-      bottom: -6px;
-      height: 2px;
-      border-radius: 999px;
-      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
-      transform: scaleX(0);
-      transform-origin: center;
-      transition: transform 200ms ease;
-    }
     .nav-link:hover,.nav-link:focus {
-      color: #fff;
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.1);
+      color: #111827;
+      background: #f3f4f6;
     }
-    .nav-link:hover::after,.nav-link:focus::after { transform: scaleX(1); }
+    .nav-link::after { display: none; }
 
     .logo-container { display:flex; align-items:center; gap:.75rem; }
-    .logo-glow { transition: transform 200ms ease, box-shadow 200ms ease; }
-    .logo-glow:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(11, 96, 168, 0.5); }
+    .logo-glow { transition: none; }
+    .logo-glow:hover { transform: none; box-shadow: none; }
     .logo-text { display:flex; flex-direction:column; justify-content:center; }
-    .logo-title { color:#fff; font-size:1.25rem; font-weight:700; line-height:1.2; margin:0; }
-    .logo-subtitle { color:#bfdbfe; font-size:.875rem; font-weight:500; margin:0; }
+    .logo-title { color:#111827; font-size:1.25rem; font-weight:700; line-height:1.2; margin:0; }
+    .logo-subtitle { color:#4b5563; font-size:.875rem; font-weight:500; margin:0; }
 
     .vl-footer {
-      background: linear-gradient(120deg, #021a2c, #064073, #0b60a8);
-      color: #e2e8f0;
-      padding: 1.25rem 0;
-      box-shadow: 0 -10px 30px rgba(2, 26, 44, 0.5);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid rgba(255,255,255,0.1);
-      z-index: 50;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 48px;
+      background: #ffffff;
+      color: #4b5563;
+      padding: 0.75rem 0;
+      box-shadow: none;
+      border-top: 1px solid #d1d5db;
+      z-index: 1;
+      position: static;
+      height: auto;
     }
     .footer-inner { max-width:1200px; margin:0 auto; text-align:center; padding:0 1.5rem; }
 
     /* Embedded (inside iframe) -> hide header/footer */
     .embedded .vl-header, .embedded .vl-footer { display:none !important; }
     .embedded #report-container { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+    #report-container {
+      max-width: 960px !important;
+      padding-top: 2rem !important;
+      padding-bottom: 2rem !important;
+    }
+    #content {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem !important;
+    }
+
+    #printBtn,
+    #downloadBtn,
+    #resetBtn {
+      border-radius: 4px !important;
+      font-weight: 600 !important;
+      box-shadow: none !important;
+      font-size: 14px !important;
+      line-height: 1.2 !important;
+      padding: 0.5rem 0.9rem !important;
+    }
+    #printBtn,
+    #downloadBtn {
+      background: #1f2937 !important;
+      color: #ffffff !important;
+      border: 1px solid #1f2937 !important;
+    }
+    #printBtn:hover,
+    #downloadBtn:hover { background: #111827 !important; }
+    #resetBtn {
+      background: #ffffff !important;
+      color: #1f2937 !important;
+      border: 1px solid #9ca3af !important;
+    }
+    #resetBtn:hover { background: #f9fafb !important; }
+
+    .report-section {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 16px;
+    }
+    .report-section-title {
+      font-size: 18px;
+      line-height: 1.3;
+      font-weight: 600;
+      margin: 0 0 10px;
+      color: #111827;
+    }
+    .report-grid-two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .report-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 16px;
+      font-size: 14px;
+      color: #1f2937;
+    }
+    .report-label {
+      font-weight: 600;
+      color: #111827;
+      margin-right: 4px;
+    }
+    .report-duration {
+      font-size: 28px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: #111827;
+      margin: 8px 0 0;
+    }
+    .report-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .report-note {
+      font-size: 12px;
+      color: #4b5563;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-weight: 500;
+    }
+    .report-table-wrap {
+      overflow: auto;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+    }
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .report-table thead { background: #f9fafb; }
+    .report-table th,
+    .report-table td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      text-align: left;
+      color: #1f2937;
+      vertical-align: top;
+    }
+    .report-table th {
+      font-weight: 600;
+      color: #111827;
+      white-space: nowrap;
+    }
+    .report-cell-strong {
+      font-weight: 600;
+      color: #111827;
+    }
+    .report-cell-muted {
+      font-size: 13px;
+      color: #4b5563;
+    }
+    .report-muted {
+      font-size: 13px;
+      color: #4b5563;
+      margin: 0 0 8px;
+    }
+    .report-frame-wrap {
+      margin-top: 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .report-locked-card {
+      background: #ffffff !important;
+      border: 1px solid #d1d5db !important;
+      border-radius: 4px !important;
+      box-shadow: none !important;
+    }
+    #reportLockedCTA {
+      border-radius: 4px !important;
+      background: #1f2937 !important;
+      color: #ffffff !important;
+      border: 1px solid #1f2937 !important;
+      box-shadow: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .report-grid-two,
+      .report-details-grid {
+        grid-template-columns: 1fr;
+      }
+    }
 
     /* Minimal fallback modal styling (if alert-theme.css missing) */
     .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:99999; padding:16px; }
@@ -122,7 +266,8 @@
     @media print {
       header, footer, #printBtn, #downloadBtn, #resetBtn { display:none !important; }
       body { background:#fff !important; }
-      .pt-24 { padding-top:0 !important; }
+      #report-container { padding-top: 0 !important; padding-bottom: 0 !important; max-width: none !important; }
+      .report-section { page-break-inside: avoid; break-inside: avoid-page; }
     }
   </style>
 
@@ -133,8 +278,8 @@
   </script>
 </head>
 
-<body class="min-h-screen bg-slate-50">
-  <header class="vl-header shadow-xl fixed top-0 left-0 right-0 z-50">
+<body class="min-h-screen bg-white">
+  <header class="vl-header relative z-20">
     <div class="header-inner px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between py-1 w-full gap-3">
         <a href="../../main.html" class="logo-container hover:no-underline focus:no-underline">
@@ -152,7 +297,7 @@
           </div>
         </a>
 
-        <button id="mobile-menu-toggle" class="lg:hidden text-white p-2 menu-button" aria-label="Toggle menu">
+        <button id="mobile-menu-toggle" class="lg:hidden text-slate-700 p-2 menu-button" aria-label="Toggle menu">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
           </svg>
@@ -173,17 +318,17 @@
   </header>
 
   <div id="reportLockedNotice" class="max-w-4xl mx-auto px-4 py-12 hidden">
-    <div class="bg-white/90 rounded-2xl shadow-lg border border-slate-200 p-6 text-center space-y-4">
+    <div class="report-locked-card p-6 text-center space-y-4">
       <p class="text-lg font-semibold text-slate-900">Progress report locked</p>
       <p class="text-sm text-slate-600">Complete the user input form before viewing your saved report.</p>
       <button id="reportLockedCTA" type="button"
-        class="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-slate-900/40 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">
+        class="inline-flex items-center justify-center gap-2 px-5 py-2 text-sm font-semibold border focus:outline-none">
         Open user form
       </button>
     </div>
   </div>
 
-  <div id="report-container" class="max-w-5xl mx-auto px-4 py-12 pt-24 pb-24">
+  <div id="report-container" class="max-w-5xl mx-auto px-4 py-12">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div>
       
@@ -191,9 +336,9 @@
  
       </div>
       <div class="flex flex-wrap gap-2">
-        <button id="printBtn" class="px-4 py-2 rounded-lg font-semibold text-white shadow-md shadow-slate-900/30 bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Print</button>
-        <button id="downloadBtn" class="px-4 py-2 rounded-lg font-semibold text-white shadow-md shadow-slate-900/25 bg-gradient-to-r from-[#021a2c] via-[#064073] to-[#0b60a8] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Download</button>
-        <button id="resetBtn" class="px-4 py-2 rounded-lg font-semibold border border-[#0b60a8] text-[#0b60a8] bg-white hover:bg-slate-50 hover:border-[#064073] shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b60a8]">Reset Data</button>
+        <button id="printBtn" class="px-4 py-2 font-semibold">Print</button>
+        <button id="downloadBtn" class="px-4 py-2 font-semibold">Download</button>
+        <button id="resetBtn" class="px-4 py-2 font-semibold">Reset Data</button>
       </div>
     </div>
 
@@ -202,7 +347,7 @@
 
   <footer class="vl-footer" role="contentinfo">
     <div class="footer-inner flex items-center justify-center h-full px-4">
-      <p class="text-xs md:text-sm text-center text-sky-100 font-medium tracking-wide">
+      <p class="text-xs md:text-sm text-center text-slate-600 font-medium tracking-wide">
         &copy; 2026 Virtual Labs IIT Roorkee
       </p>
     </div>
@@ -400,47 +545,41 @@
       const posttestData = getAssessmentData("posttest");
 
       const base = `
-        <div class="bg-white/90 rounded-2xl shadow border border-slate-200 p-6 backdrop-blur">
-          <div class="flex flex-wrap items-start gap-4 justify-between">
-            <div>
-              <h2 class="text-xl font-bold text-slate-900 mb-2">User Details</h2>
-              <div class="grid sm:grid-cols-2 gap-3 text-slate-700">
-                <div><span class="font-semibold">Name:</span> ${escapeHTML(user.name)}</div>
-                <div><span class="font-semibold">Email:</span> ${escapeHTML(user.email)}</div>
-                <div><span class="font-semibold">Designation:</span> ${escapeHTML(user.designation)}</div>
-              </div>
-            </div>
-           
+        <section class="report-section">
+          <h2 class="report-section-title">User Details</h2>
+          <div class="report-details-grid">
+            <div><span class="report-label">Name:</span>${escapeHTML(user.name)}</div>
+            <div><span class="report-label">Email:</span>${escapeHTML(user.email)}</div>
+            <div><span class="report-label">Designation:</span>${escapeHTML(user.designation)}</div>
           </div>
+        </section>
+
+        <div class="report-grid-two">
+          <section class="report-section">
+            <h2 class="report-section-title">Start / End</h2>
+            <div class="space-y-2 text-sm text-slate-800">
+              <div><span class="report-label">Session Start:</span>${escapeHTML(formatTimestamp(start) || start || "-")}</div>
+              <div><span class="report-label">Report Viewed:</span>${escapeHTML(formatTimestamp(end) || end || "-")}</div>
+            </div>
+          </section>
+          <section class="report-section">
+            <h2 class="report-section-title">Total Duration</h2>
+            <p class="report-duration">${VLProgress.formatMs(totalMs)}</p>
+          </section>
         </div>
 
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="bg-white/90 rounded-2xl shadow border border-slate-200 p-6 backdrop-blur">
-            <h2 class="text-xl font-bold text-slate-900 mb-3">Start / End</h2>
-            <div class="space-y-3 text-slate-700">
-              <div><span class="font-semibold">Session Start:</span> ${escapeHTML(formatTimestamp(start) || start || "-")}</div>
-              <div><span class="font-semibold">Report Viewed:</span> ${escapeHTML(formatTimestamp(end) || end || "-")}</div>
-            </div>
+        <section class="report-section">
+          <div class="report-section-head">
+            <h2 class="report-section-title" style="margin:0;">Assessment Scores</h2>
+            <span class="report-note">Auto-saved</span>
           </div>
-          <div class="bg-gradient-to-br from-sky-50 via-white to-slate-50 rounded-2xl shadow border border-slate-200 p-6">
-            <h2 class="text-xl font-bold text-slate-900 mb-3">Total Duration</h2>
-            <p class="text-3xl font-bold text-sky-700">${VLProgress.formatMs(totalMs)}</p>
-           
-          </div>
-        </div>
-
-        <div class="bg-white/90 rounded-2xl shadow border border-slate-200 p-6 backdrop-blur">
-          <div class="flex items-center justify-between gap-3 mb-3">
-            <h2 class="text-xl font-bold text-slate-900">Assessment Scores</h2>
-            <span class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-700">Auto-saved</span>
-          </div>
-          <div class="overflow-auto rounded-xl border border-slate-100">
-            <table class="w-full text-left">
-              <thead class="bg-slate-50">
-                <tr class="text-slate-600 text-sm">
-                  <th class="py-2 px-3">Assessment</th>
-                  <th class="py-2 px-3">Score</th>
-                  <th class="py-2 px-3">Last Updated</th>
+          <div class="report-table-wrap">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Assessment</th>
+                  <th>Score</th>
+                  <th>Last Updated</th>
                 </tr>
               </thead>
               <tbody>
@@ -449,15 +588,15 @@
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <div class="bg-white rounded-2xl shadow border border-slate-200 p-6">
-          <h2 class="text-xl font-bold text-slate-900 mb-3">Simulation Report</h2>
-          <p id="simulationReportStatus" class="text-sm text-slate-500 mb-2">---</p>
-          <div class="mt-4 border border-slate-200 rounded-2xl overflow-hidden">
+        <section id="reportSimulationSection" class="report-section">
+          <h2 class="report-section-title">Simulation Report</h2>
+          <p id="simulationReportStatus" class="report-muted">---</p>
+          <div class="report-frame-wrap">
             <iframe id="simulationReportFrame" class="w-full hidden" loading="lazy" style="min-height:540px; border:none;"></iframe>
           </div>
-        </div>
+        </section>
       `;
 
       contentEl.innerHTML = base;
@@ -621,51 +760,112 @@
       return img;
     }
 
-    async function prepareExportClone() {
-      if (!contentEl) return null;
-
-      const width = contentEl.offsetWidth || contentEl.clientWidth || 900;
+    function createDetachedExportWrapper(widthPx) {
       const wrapper = document.createElement("div");
       wrapper.style.position = "absolute";
       wrapper.style.left = "-99999px";
       wrapper.style.top = "0";
-      wrapper.style.width = `${width}px`;
-      wrapper.style.background = "#fff";
+      wrapper.style.width = `${widthPx}px`;
+      wrapper.style.background = "#ffffff";
       wrapper.style.padding = "0";
       wrapper.style.margin = "0";
-      wrapper.style.display = "flex";
-      wrapper.style.flexDirection = "column";
-      wrapper.style.gap = "0";
+      wrapper.style.display = "block";
+      return wrapper;
+    }
 
-      const clone = contentEl.cloneNode(true);
+    function addCanvasFittedSinglePage(pdf, canvas, margin = 24) {
+      if (!pdf || !canvas || !canvas.width || !canvas.height) return;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const scale = Math.min(usableWidth / canvas.width, usableHeight / canvas.height);
+      const renderWidth = canvas.width * scale;
+      const renderHeight = canvas.height * scale;
+      const x = margin + (usableWidth - renderWidth) / 2;
+      const y = margin;
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", x, y, renderWidth, renderHeight, undefined, "FAST");
+    }
 
-      const header = document.querySelector("header");
-      const footer = document.querySelector("footer");
+    function appendCanvasPaged(pdf, canvas, { margin = 24, startNewPage = true } = {}) {
+      if (!pdf || !canvas || !canvas.width || !canvas.height) return;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
+      const sliceSourceHeight = Math.max(1, Math.floor((usableHeight * canvas.width) / usableWidth));
 
-      const normalizeClone = (node) => {
-        if (!node) return null;
-        const cloneNode = node.cloneNode(true);
-        if (cloneNode.style) {
-          cloneNode.style.position = "relative";
-          cloneNode.style.left = "auto";
-          cloneNode.style.right = "auto";
-          cloneNode.style.top = "auto";
-          cloneNode.style.bottom = "auto";
-          cloneNode.style.transform = "none";
-        }
-        return cloneNode;
+      let sourceY = 0;
+      let pageIndex = 0;
+      let newPage = startNewPage;
+
+      while (sourceY < canvas.height) {
+        if (newPage || pageIndex > 0) pdf.addPage();
+
+        const thisSliceHeight = Math.min(sliceSourceHeight, canvas.height - sourceY);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = thisSliceHeight;
+
+        const ctx = sliceCanvas.getContext("2d");
+        if (!ctx) throw new Error("Unable to prepare PDF page slice.");
+        ctx.drawImage(
+          canvas,
+          0, sourceY, canvas.width, thisSliceHeight,
+          0, 0, canvas.width, thisSliceHeight
+        );
+
+        const renderHeight = (thisSliceHeight * usableWidth) / canvas.width;
+        pdf.addImage(
+          sliceCanvas.toDataURL("image/png"),
+          "PNG",
+          margin,
+          margin,
+          usableWidth,
+          renderHeight,
+          undefined,
+          "FAST"
+        );
+
+        sourceY += thisSliceHeight;
+        pageIndex += 1;
+        newPage = false;
+      }
+    }
+
+    async function prepareExportNodes() {
+      const sourceNode = reportContainer || contentEl;
+      if (!sourceNode) return null;
+
+      const width = sourceNode.offsetWidth || sourceNode.clientWidth || 900;
+      const wrappers = [];
+      const appendWrapper = (wrapper) => {
+        document.body.appendChild(wrapper);
+        wrappers.push(wrapper);
       };
 
-      const headerClone = normalizeClone(header);
-      const footerClone = normalizeClone(footer);
+      const firstPageWrapper = createDetachedExportWrapper(width);
+      const firstPageClone = sourceNode.cloneNode(true);
+      firstPageClone.style.width = "100%";
+      firstPageClone.style.maxWidth = "none";
+      firstPageClone.querySelector("#reportSimulationSection")?.remove();
+      firstPageWrapper.appendChild(firstPageClone);
+      appendWrapper(firstPageWrapper);
 
-      if (headerClone) wrapper.appendChild(headerClone);
-      wrapper.appendChild(clone);
-      if (footerClone) wrapper.appendChild(footerClone);
+      const simulationWrapper = createDetachedExportWrapper(width);
+      const liveSimulationSection = document.getElementById("reportSimulationSection");
+      let simulationClone = null;
 
-      document.body.appendChild(wrapper);
+      if (liveSimulationSection) {
+        simulationClone = liveSimulationSection.cloneNode(true);
+      } else {
+        simulationClone = document.createElement("section");
+        simulationClone.className = "report-section";
+        simulationClone.innerHTML =
+          '<h2 class="report-section-title">Simulation Report</h2><p class="report-muted">Simulation report not found.</p>';
+      }
 
-      const frameClone = clone.querySelector("#simulationReportFrame");
+      const frameClone = simulationClone.querySelector("#simulationReportFrame");
       if (frameClone) {
         const liveFrame = document.getElementById("simulationReportFrame");
         let replacement = null;
@@ -688,9 +888,15 @@
         frameClone.replaceWith(replacement);
       }
 
+      simulationWrapper.appendChild(simulationClone);
+      appendWrapper(simulationWrapper);
+
+      await sleep(60);
+
       return {
-        node: wrapper,
-        cleanup: () => wrapper.remove()
+        firstNode: firstPageWrapper,
+        simulationNode: simulationWrapper,
+        cleanup: () => wrappers.forEach((wrapper) => wrapper.remove())
       };
     }
 
@@ -700,10 +906,10 @@
       const updatedDisplay = data?.updatedAt ? (formatTimestamp(data.updatedAt) || data.updatedAt) : "Not available";
 
       return `
-        <tr class="border-t">
-          <td class="py-2 pr-4 font-semibold text-slate-700 px-3">${escapeHTML(title)}</td>
-          <td class="py-2 pr-4 text-slate-700 px-3">${escapeHTML(scoreDisplay)}</td>
-          <td class="py-2 text-slate-500 text-sm px-3">${escapeHTML(updatedDisplay)}</td>
+        <tr>
+          <td class="report-cell-strong">${escapeHTML(title)}</td>
+          <td>${escapeHTML(scoreDisplay)}</td>
+          <td class="report-cell-muted">${escapeHTML(updatedDisplay)}</td>
         </tr>
       `;
     }
@@ -778,7 +984,7 @@
 
     // More reliable export using html2canvas snapshot (multi-page)
     async function downloadReportCanvas() {
-      if (!contentEl) {
+      if (!reportContainer || !contentEl) {
         showReportAlert("Report is not ready yet. Please reload and try again.", "Download Failed");
         return;
       }
@@ -800,56 +1006,35 @@
 
       const btn = downloadBtn;
       const originalLabel = btn?.textContent;
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "Preparing PDF...";
-        btn.setAttribute("aria-busy", "true");
-      }
 
       let exportCleanup = null;
-      let targetNode = contentEl;
 
       try {
         const latestSimReport = getSimulationReportData();
         if (latestSimReport) currentSimulationReport = latestSimReport;
 
-        const exportContext = await prepareExportClone();
-        if (exportContext) {
-          targetNode = exportContext.node;
-          exportCleanup = exportContext.cleanup;
-        }
-
         const captureScale = Math.min(2, window.devicePixelRatio || 1.5);
-        const canvas = await html2canvas(targetNode, {
+        const captureOptions = {
           scale: captureScale,
           useCORS: true,
           allowTaint: true,
           scrollX: 0,
           scrollY: 0,
           backgroundColor: "#ffffff"
-        });
+        };
 
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 24;
-        const usableWidth = pageWidth - margin * 2;
-        const imgWidth = usableWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const pageContentHeight = pageHeight - margin * 2;
-
-        let remainingHeight = imgHeight;
-        let pageIndex = 0;
-
-        while (remainingHeight > 0) {
-          if (pageIndex > 0) pdf.addPage();
-          const yOffset = margin - pageIndex * pageContentHeight;
-          pdf.addImage(imgData, "PNG", margin, yOffset, imgWidth, imgHeight);
-          remainingHeight -= pageContentHeight;
-          pageIndex += 1;
+        const exportContext = await prepareExportNodes();
+        if (!exportContext?.firstNode || !exportContext?.simulationNode) {
+          throw new Error("Report export context is unavailable.");
         }
+        exportCleanup = exportContext.cleanup;
+
+        const firstCanvas = await html2canvas(exportContext.firstNode, captureOptions);
+        const simulationCanvas = await html2canvas(exportContext.simulationNode, captureOptions);
+
+        const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+        addCanvasFittedSinglePage(pdf, firstCanvas, 24);
+        appendCanvasPaged(pdf, simulationCanvas, { margin: 24, startNewPage: true });
 
         pdf.save("progress-report.pdf");
       } catch (error) {
@@ -858,9 +1043,7 @@
       } finally {
         if (exportCleanup) exportCleanup();
         if (btn) {
-          btn.disabled = false;
-          btn.textContent = originalLabel;
-          btn.removeAttribute("aria-busy");
+          if (typeof originalLabel === "string") btn.textContent = originalLabel;
         }
       }
     }
@@ -879,3 +1062,4 @@
   </script>
 </body>
 </html>
+

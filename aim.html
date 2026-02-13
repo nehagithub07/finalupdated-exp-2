@@ -1494,7 +1494,7 @@
               <span class="intro-badge inline-flex items-center justify-center w-8 h-8 rounded-full text-white font-semibold">i</span>
               <p class="text-lg font-semibold text-gray-800 mb-0">Experiment Sections</p>
             </div>
-            <p class="intro-note">Tap a section to jump there instantly.</p>
+             
 
             <ul id="intro-outline">
               <li class="outline-item" data-start="0">Overview</li>
@@ -1877,7 +1877,7 @@
       if (shouldShowPostIntroNotice) {
         const noticeMessage = "Now that you've understood the experiment workflow, you may proceed to perform the experiment independently at your own pace.";
         if (typeof window.showAimAlert === "function") {
-          window.showAimAlert(noticeMessage, "All set", proceedToUserPrompt);
+          window.showAimAlert(noticeMessage, "Ready To Begin", proceedToUserPrompt);
         } else {
           alert(noticeMessage);
           proceedToUserPrompt();
@@ -2519,7 +2519,7 @@
 <div id="userFormPrompt"
      class="fixed inset-0 hidden items-center justify-center z-[99999] bg-black/60 p-4">
   <div class="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-gray-200 p-6">
-    <h3 class="text-xl font-bold text-gray-900">Alert</h3>
+    <h3 class="text-xl font-bold text-gray-900">Important Note</h3>
     <p class="text-gray-700 mt-2">
       If you want to generate a progress report, first you have to fill your details in the user form.
     </p>
@@ -2931,13 +2931,8 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const msg = needUser && needSim
-        ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
-        : needUser
-          ? "Fill your user details before accessing Progress Report."
-          : "Complete the simulation and generate its report before accessing Progress Report.";
-
-      showAimAlert(msg, "Notice");
+      const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+      showAimAlert(msg, "Instructions");
     }, true);
   });
 
@@ -2955,22 +2950,14 @@
     if (VLProgress.hasUser() && hasSimulationReport()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const msg = (!VLProgress.hasUser() && !hasSimulationReport())
-      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
-      : (!VLProgress.hasUser())
-        ? "Fill your user details before accessing Progress Report."
-        : "Complete the simulation and generate its report before accessing Progress Report.";
-    showAimAlert(msg, "Notice");
+    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    showAimAlert(msg, "Instructions");
   }, true);
 
   // If user loads aim.html#progressreport directly without user form
   if (window.location.hash === "#progressreport" && (!VLProgress.hasUser() || !hasSimulationReport())) {
-    const msg = (!VLProgress.hasUser() && !hasSimulationReport())
-      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
-      : (!VLProgress.hasUser())
-        ? "Fill your user details before accessing Progress Report."
-        : "Complete the simulation and generate its report before accessing Progress Report.";
-    showAimAlert(msg, "Notice");
+    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    showAimAlert(msg, "Instructions");
   }
 
   // If intro is not shown (already shown earlier), still prompt on load (optional but useful)

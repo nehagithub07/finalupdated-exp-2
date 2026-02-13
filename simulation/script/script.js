@@ -1011,7 +1011,8 @@ function setupJsPlumb() {
         const key = [conn.sourceId, conn.targetId].sort().join("-");
         seenKeys.add(key);
         if (!allowedConnections.has(key)) {
-          illegal.push(key);
+          // Keep the user-made direction for clearer spoken feedback.
+          illegal.push(`${conn.sourceId}-${conn.targetId}`);
         }
       });
 
@@ -1026,7 +1027,7 @@ function setupJsPlumb() {
         starterMoved = false;
         window.dispatchEvent(new CustomEvent(CONNECTION_VERIFIED_EVENT));
         speakOrAlertLocal(
-          "Connections are correct. Click on the MCB to turn it ON."
+          "Connections are correct, click on the MCB to turn it on."
         );
         return;
       }
@@ -1037,13 +1038,44 @@ function setupJsPlumb() {
         const [a, b] = pair.split("-");
         const key = connectionKey(a, b);
         if (!seenKeys.has(key)) {
-          nextMissing = key;
+          // Preserve the required instruction order (e.g., B to A2).
+          nextMissing = pair;
           break;
         }
       }
 
       const firstIllegal = illegal[0] || null;
-      const message = "Please make all the connections first.";
+      const wrongConnectionLabels = illegal
+        .map((key) => formatConnectionDisplay(key))
+        .filter(Boolean);
+      const missingConnectionLabels = requiredPairs
+        .filter((pair) => {
+          const [a, b] = String(pair).split("-");
+          return a && b && !seenKeys.has(connectionKey(a, b));
+        })
+        .map((pair) => formatConnectionDisplay(pair))
+        .filter(Boolean);
+      const isInitialWiringState = seenKeys.size === 0;
+      const hasWrongDetails = wrongConnectionLabels.length > 0;
+      const hasMissingDetails = !isInitialWiringState && missingConnectionLabels.length > 0;
+      let message = hasWrongDetails || hasMissingDetails
+        ? ""
+        : "Please make all the connections first.";
+
+      if (wrongConnectionLabels.length) {
+        const preview = wrongConnectionLabels.slice(0, 3).join(", ");
+        const extraCount = Math.max(0, wrongConnectionLabels.length - 3);
+        const extraText = extraCount ? ` and ${extraCount} more` : "";
+        if (message && !message.endsWith(" ")) message += " ";
+        message += ` Wrong connection${wrongConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+      }
+      if (!isInitialWiringState && missingConnectionLabels.length) {
+        const preview = missingConnectionLabels.slice(0, 3).join(", ");
+        const extraCount = Math.max(0, missingConnectionLabels.length - 3);
+        const extraText = extraCount ? ` and ${extraCount} more` : "";
+        if (message && !message.endsWith(" ")) message += " ";
+        message += ` Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+      }
 
       let speechMessage = "Please make all the connections first.";
       if (firstIllegal) {
@@ -1053,9 +1085,9 @@ function setupJsPlumb() {
         speechMessage += ` Next connection: ${formatConnectionSpeech(nextMissing)}.`;
       }
 
-      // Always attempt to speak; still show popup fallback if speech is inactive.
+      // Always speak guidance. Show popup for wrong or missing connections.
       speakLocal(speechMessage, { interruptFirst: true });
-      if (!guideSpeechActive()) {
+      if (illegal.length || missing.length) {
         showPopup(message);
       }
       setMcbState(false, { silent: true });
@@ -1138,7 +1170,7 @@ function setupJsPlumb() {
         suppressGuideDuringAutoConnect = false;
         isAutoConnecting = false;
         if (guideWasActive && window.labSpeech && typeof window.labSpeech.speak === "function") {
-          window.labSpeech.speak("Auto connect completed. Click the Check button to verify the wiring.");
+          window.labSpeech.speak("Autoconnect completed. Click on the check button to verify the connections.");
         }
       }, 0);
     });
@@ -1384,7 +1416,7 @@ function setupJsPlumb() {
       if (firstIncomplete >= steps.length) {
         activateGuideUI();
         speakGuide(
-          "All connections are complete. Click the Check button to verify the wiring."
+          "All connections are complete. Click the Check button to verify the connections."
         );
         return;
       }
@@ -1478,7 +1510,7 @@ function setupJsPlumb() {
       currentStep = getFirstIncompleteStepIndex();
       if (currentStep >= steps.length) {
         speakGuide(
-          "All connections are complete. Click the Check button to verify the wiring."
+          "All connections are complete. Click the Check button to verify the connection."
         );
         return;
       }
@@ -1502,7 +1534,7 @@ function setupJsPlumb() {
 
     window.addEventListener(MCB_TURNED_ON_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("Now move the starter handle from left to right.");
+      speakGuide("Now move the starter handle from left to right");
     });
 
     window.addEventListener(STARTER_MOVED_EVENT, function () {
@@ -1512,7 +1544,7 @@ function setupJsPlumb() {
 
     window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("The MCB is turned off. Turn it on to continue.");
+      speakGuide("You turned off the MCB. Turn it back on to continue the simulation.");
     });
   })();
 
@@ -1879,7 +1911,7 @@ document.addEventListener("keydown", (e) => {
           showPopup("Graph plotted. You can now generate the report.", "Graph Ready");
         }
         speak(
-          "The graph of terminal voltage versus load current has been plotted. Your experiment is now complete. You may view the report by clicking the Report button, then use Print to print the page or Reset to start again."
+          "The graph of terminal voltage versus load current has been plotted. Your experiment is now complete. You may view the report by clicking on the report button, then use print to print the page or reset to start again."
         );
       })
       .catch(() => {
@@ -2286,11 +2318,11 @@ tr:nth-child(even) { background-color: #f8fbff; }
       return;
     }
     showPopup(
-      "Report will open in a new tab. Please allow pop-ups.",
+      "Your report has been generated successfully. Click OK to view your report",
       "Report Ready"
     );
     if (speechIsActive()) {
-      speak("Opening the report in a new tab. Please allow pop ups.");
+      speak("Your report has been generated successfully. Click OK to view your report");
     }
     waitForWarningModalAcknowledgement().then(() => {
       generateReport();
@@ -2322,7 +2354,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
       return;
     }
     if (readingsRecorded.length >= 10) {
-      speakOrAlert("You can only add maximum 10 readings in the table. Now, click on Graph button.");
+      speakOrAlert("You can add a maximum of 10 readings to the table. Now, click the Graph button.");
       return;
     }
 
@@ -2355,11 +2387,11 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (!allReadingsAlertShown && readingsRecorded.length === 10) {
       allReadingsAlertShown = true;
       showPopup(
-        "All 10 readings are recorded. Plot the graph, then click Report to generate your report.",
+        "All 10 readings have been recorded. Now, plot the graph and then click on the report button to generate your report.",
         "All Readings Added"
       );
       speak(
-        "All ten readings have been added. Please plot the graph and then click the Report button to view your report."
+        "All ten readings have been recorded. Now plot the graph and then click on the report button to generate your report."
       );
     }
     readingArmed = false;
@@ -2370,7 +2402,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (readingsRecorded.length < minGraphPoints) {
       speak("Once again, change the bulb selection.");
     } else if (readingsRecorded.length >= minGraphPoints && readingsRecorded.length < 10) {
-      speak("Now, you can plot the graph by clicking on the Graph button or add more readings to the table.");
+      speak("Now you can plot the graph by clicking on the graph button or add more readings to the table.");
     }
 
     if (!graphReadyAnnounced && readingsRecorded.length >= minGraphPoints) {
@@ -2408,9 +2440,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     updateNeedles(selectedIndex);
 
     if (readingsRecorded.length === 0) {
-      speak("Press the Add To Table button to insert the values into the table.");
+      speak("Click on the add to table button to add the reading to the observation table.");
     } else {
-      speak("Click the Add To Table button again.");
+      speak("Click add to table button again.");
     }
   }
 
@@ -2428,7 +2460,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
       typeof window.SpeechSynthesisUtterance === "function";
 
     if (wasGuiding && speechSupported && window.labSpeech && typeof window.labSpeech.speak === "function") {
-      window.labSpeech.speak("Experiment reset. You can start again.", {
+      window.labSpeech.speak("The simulation has been reset. You can start again.", {
         onend: () => {
           if (typeof window.stopGuideSpeech === "function") {
             window.stopGuideSpeech();
@@ -2947,7 +2979,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
   let autoPlayRequested = false;
   let autoPlayRetryArmed = false;
   const COMPONENTS_EXIT_MESSAGE =
-    "Now that you are familiar with all the components used in this experiment, you may now start the experiment.\n\nAn AI guide is available to assist you at every step.";
+    "Now that you are familiar with all the components used in this experiment, you may now start the simulation \n\nAn AI guide is available to assist you at every step.";
 
   function showComponentsExitAlert() {
     if (hasShownComponentsAlert()) return;

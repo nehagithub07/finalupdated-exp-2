@@ -93,12 +93,54 @@
 
   function getProgressNavTemplate(label) {
     return `
-      <svg class="w-5 h-5 mr-3 opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="progress-nav-icon w-5 h-5 mr-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
       </svg>
       ${label}
     `;
+  }
+
+  function ensureProgressNoHoverStyles() {
+    const styleId = 'progress-report-no-hover-style';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .menu-item[data-progress-report-link]:hover,
+      .menu-item[data-progress-report-link]:focus {
+        border-left-color: transparent !important;
+        background: rgba(255, 255, 255, 0.6) !important;
+        transform: none !important;
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.6) !important;
+      }
+
+      .menu-item[data-progress-report-link]:hover::after,
+      .menu-item[data-progress-report-link]:focus::after {
+        opacity: 0 !important;
+        transform: translateX(-100%) !important;
+      }
+
+      .menu-item[data-progress-report-link] .progress-nav-icon {
+        opacity: 0.7 !important;
+      }
+
+      .top-nav .nav-link[data-progress-report-link]:hover,
+      .top-nav .nav-link[data-progress-report-link]:focus {
+        color: #e2e8f0 !important;
+        transform: none !important;
+        background: transparent !important;
+      }
+
+      .top-nav .nav-link[data-progress-report-link]:hover::after,
+      .top-nav .nav-link[data-progress-report-link]:focus::after {
+        transform: scaleX(0) !important;
+      }
+    `;
+
+    const head = document.head || document.getElementsByTagName('head')[0];
+    if (head) head.appendChild(style);
   }
 
   function getPageName() {
@@ -164,6 +206,7 @@
       if (!anchor.id) anchor.id = 'progressReportNav';
       anchor.href = getProgressHrefTarget();
       anchor.setAttribute('data-progress-report-link', '');
+      anchor.classList.remove('group');
       anchor.removeAttribute('target');
       anchor.setAttribute('target', '_self');
       anchor.setAttribute('rel', 'noopener');
@@ -176,7 +219,7 @@
     anchor.href = getProgressHrefTarget();
     anchor.setAttribute('target', '_self');
     anchor.setAttribute('rel', 'noopener');
-    anchor.className = 'menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg group';
+    anchor.className = 'menu-item flex items-center px-4 py-3 text-gray-700 rounded-lg';
     anchor.setAttribute('data-progress-report-link', '');
     anchor.innerHTML = getProgressNavTemplate(label);
     navContainer.appendChild(anchor);
@@ -270,6 +313,7 @@
     const hasSharedModal = typeof window.openSharedUserInputModal === 'function';
 
     ensureAlertThemeCss();
+    ensureProgressNoHoverStyles();
     forceSameTabProgressLinks();
 
     const pageName = getPageName();
@@ -475,8 +519,8 @@
       event.stopImmediatePropagation();
 
       showAimAlert(
-        'You have to first fill the user details then you can generate the report.',
-        'Notice'
+        'To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.',
+        'Instructions'
       );
     };
 
@@ -516,8 +560,8 @@
         event.preventDefault();
         event.stopImmediatePropagation();
         showAimAlert(
-          'You have to first fill the user details then you can generate the report.',
-          'Notice'
+          'To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.',
+          'Instructions'
         );
         return;
       }
@@ -558,6 +602,12 @@
 
     if (isAimPage) {
       window.addEventListener('hashchange', setActiveMenu);
+      if (window.location.hash === '#progressreport' && !VP().hasUser()) {
+        showAimAlert(
+          'To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.',
+          'Instructions'
+        );
+      }
     }
 
     window.maybePromptUserForm = function maybePromptUserForm() {
@@ -641,3 +691,4 @@
     document.addEventListener('DOMContentLoaded', init);
   }
 })();
+

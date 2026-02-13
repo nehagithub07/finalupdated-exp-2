@@ -170,13 +170,8 @@
   }
 
   function showReportBlockMessage(needsUser, needsSim) {
-    const msg = needsUser && needsSim
-      ? "Fill your user details and complete the simulation (generate the report) before accessing Progress Report."
-      : needsUser
-        ? "Fill your user details before accessing Progress Report."
-        : "Complete the simulation and generate its report before accessing Progress Report.";
-
-    if (typeof window.showAimAlert === "function") window.showAimAlert(msg, "Notice");
+    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    if (typeof window.showAimAlert === "function") window.showAimAlert(msg, "Instructions");
     else window.alert(msg);
   }
 
@@ -187,7 +182,7 @@
     links.forEach((link) => {
       if (disabled) {
         link.classList.add("opacity-70");
-        link.setAttribute("title", "Progress Report will show once user details and simulation report are available.");
+        link.setAttribute("title", "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.");
       } else {
         link.classList.remove("opacity-70");
         link.removeAttribute("title");
