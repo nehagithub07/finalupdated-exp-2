@@ -848,6 +848,8 @@
       const firstPageClone = sourceNode.cloneNode(true);
       firstPageClone.style.width = "100%";
       firstPageClone.style.maxWidth = "none";
+      const firstPageActions = firstPageClone.querySelector("#downloadBtn")?.parentElement;
+      if (firstPageActions) firstPageActions.remove();
       firstPageClone.querySelector("#reportSimulationSection")?.remove();
       firstPageWrapper.appendChild(firstPageClone);
       appendWrapper(firstPageWrapper);

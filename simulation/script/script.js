@@ -1723,6 +1723,10 @@ document.addEventListener("keydown", (e) => {
   // Override voltmeter-1 dial to land on ~225 V once starter is on.
   const voltmeter1ManualAngles = [5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5];
   const voltmeter2ManualAngles = [3, 1, -1, -3, -5, -7.8, -10, -13, -17, -20];
+  const GRAPH_TITLE_TEXT = "Terminal Voltage (V) vs Load Current (A)";
+  const GRAPH_X_AXIS_LABEL = "Load Current (A)";
+  const GRAPH_Y_AXIS_LABEL = "Terminal Voltage (V)";
+  const GRAPH_X_TICK_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
 
   const readingsRecorded = [];
   let selectedIndex = -1;
@@ -1880,19 +1884,20 @@ document.addEventListener("keydown", (e) => {
           y: voltages,
           mode: "lines+markers",
           type: "scatter",
+          name: GRAPH_TITLE_TEXT,
           marker: { color: "#1b6fb8", size: 8 },
           line: { color: "#1b6fb8", width: 3 }
         };
         const layout = {
-          title: { text: "<b>Terminal Voltage (V) vs Load Current (A)</b>" },
+          title: { text: `<b>${GRAPH_TITLE_TEXT}</b>` },
           margin: { l: 60, r: 20, t: 40, b: 50 },
           xaxis: {
-            title: "<b>Load Current (A)</b>",
+            title: `<b>${GRAPH_X_AXIS_LABEL}</b>`,
             gridcolor: "rgba(0, 0, 0, 0.07)",
             tickmode: "array",
-            tickvals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            tickvals: GRAPH_X_TICK_VALUES
           },
-          yaxis: { title: "<b>Terminal Voltage (V)</b>", gridcolor: "rgba(0, 0, 0, 0.07)" },
+          yaxis: { title: `<b>${GRAPH_Y_AXIS_LABEL}</b>`, gridcolor: "rgba(0, 0, 0, 0.07)" },
           paper_bgcolor: "rgba(0,0,0,0)",
           plot_bgcolor: "rgba(0,0,0,0)"
         };
@@ -2210,20 +2215,24 @@ tr:nth-child(even) { background-color: #f8fbff; }
     (function() {
       var currents = ${JSON.stringify(currentValues)};
       var voltages = ${JSON.stringify(voltageValues)};
+      var graphTitle = ${JSON.stringify(GRAPH_TITLE_TEXT)};
+      var graphXAxisLabel = ${JSON.stringify(GRAPH_X_AXIS_LABEL)};
+      var graphYAxisLabel = ${JSON.stringify(GRAPH_Y_AXIS_LABEL)};
+      var graphXTickValues = ${JSON.stringify(GRAPH_X_TICK_VALUES)};
       var graphContainer = document.getElementById('report-graph');
       var graphReady = Promise.resolve();
 
       if (currents.length && voltages.length) {
-         var trace = { x: currents, y: voltages, type: 'scatter', mode: 'lines+markers', name: 'Terminal Voltage (V) vs Load Current (A)', line: { color: '#3498db' } };
+         var trace = { x: currents, y: voltages, type: 'scatter', mode: 'lines+markers', name: graphTitle, line: { color: '#3498db' } };
         var layout = {
-          title: { text: 'Terminal Voltage (V) vs Load Current (A)' },
+          title: { text: '<b>' + graphTitle + '</b>' },
           xaxis: {
-            title: { text: 'Load Current (A)', standoff: 12 },
+            title: { text: '<b>' + graphXAxisLabel + '</b>', standoff: 12 },
             automargin: true,
             tickmode: 'array',
-            tickvals: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            tickvals: graphXTickValues
           },
-          yaxis: { title: { text: 'Terminal Voltage (V)', standoff: 12 }, automargin: true },
+          yaxis: { title: { text: '<b>' + graphYAxisLabel + '</b>', standoff: 12 }, automargin: true },
           margin: { t: 70, r: 30, l: 80, b: 70 }
         };
         graphReady = Plotly.newPlot('report-graph', [trace], layout, {displaylogo:false}).then(function(gd) {
@@ -2231,7 +2240,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
         }).then(function(imgData) {
           var img = new Image();
           img.src = imgData;
-          img.alt = 'Terminal Voltage (V) vs Load Current (A)';
+          img.alt = graphTitle;
           img.style.maxWidth = '100%';
           img.style.height = 'auto';
           graphContainer.innerHTML = '';
