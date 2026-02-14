@@ -2562,38 +2562,228 @@ tr:nth-child(even) { background-color: #f8fbff; }
     });
   }
 
+  const SIM_PRINT_CONTAINER_ID = "simulation-print-container";
+  const SIM_PRINT_ACTIVE_CLASS = "simulation-print-active";
+  const SIM_PRINT_CLONE_SCALE = 0.78;
   let printLaunchInProgress = false;
-  async function launchSimulationPrint() {
-    if (printLaunchInProgress) return;
-    printLaunchInProgress = true;
-    try {
-      if (speechIsActive()) {
-        window.labSpeech.speak("Opening the print dialog.");
-      }
-      if (typeof window.preparePrintLayout === "function") {
-        window.preparePrintLayout();
-      }
-      if (typeof window.preparePrintSnapshotsForPrint === "function") {
-        // Try exact snapshot print first; if it fails, fall back to normal print.
-        try {
-          await window.preparePrintSnapshotsForPrint();
-        } catch {}
-      }
-      window.print();
-    } finally {
-      printLaunchInProgress = false;
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function waitForNextFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+
+  function cleanupSimulationPrintContainer() {
+    const existing = document.getElementById(SIM_PRINT_CONTAINER_ID);
+    if (existing) {
+      existing.remove();
+    }
+    if (document.body) {
+      document.body.classList.remove(SIM_PRINT_ACTIVE_CLASS);
     }
   }
 
+  async function waitForPrintAssets(targets) {
+    const fontReady =
+      document.fonts && typeof document.fonts.ready?.then === "function"
+        ? document.fonts.ready.catch(() => {})
+        : Promise.resolve();
+
+    const pendingImages = [];
+    targets.forEach((target) => {
+      if (!target || !target.querySelectorAll) return;
+      target.querySelectorAll("img").forEach((img) => {
+        if (img.complete) return;
+        pendingImages.push(
+          new Promise((resolve) => {
+            const done = () => resolve();
+            img.addEventListener("load", done, { once: true });
+            img.addEventListener("error", done, { once: true });
+          })
+        );
+      });
+    });
+
+    await Promise.race([Promise.all([fontReady, Promise.all(pendingImages)]), wait(1400)]);
+  }
+
+  async function syncPlotlyGraphForPrint(sourceFooter, clonedFooter) {
+    const sourcePlot = sourceFooter?.querySelector("#graphPlot");
+    const clonedPlot = clonedFooter?.querySelector("#graphPlot");
+    if (!sourcePlot || !clonedPlot) return;
+
+    const hasPlotData = Array.isArray(sourcePlot.data) && sourcePlot.data.length > 0;
+    if (!hasPlotData) return;
+    if (!window.Plotly || typeof window.Plotly.toImage !== "function") return;
+
+    try {
+      const rect = sourcePlot.getBoundingClientRect();
+      const width = Math.max(420, Math.round(rect.width || sourcePlot.clientWidth || 420));
+      const height = Math.max(280, Math.round(rect.height || sourcePlot.clientHeight || 280));
+      const dataUrl = await window.Plotly.toImage(sourcePlot, {
+        format: "png",
+        width,
+        height,
+        scale: 2
+      });
+
+      const plotImage = document.createElement("img");
+      plotImage.src = dataUrl;
+      plotImage.alt = "Output graph";
+      plotImage.className = "print-plot-image";
+      clonedPlot.replaceChildren(plotImage);
+      clonedPlot.style.display = "block";
+
+      const clonedBars = clonedFooter.querySelector("#graphBars");
+      if (clonedBars) clonedBars.style.display = "none";
+    } catch (error) {
+      console.warn("Print graph export failed; using cloned Plotly DOM output.", error);
+    }
+  }
+
+  function normalizePrintPanelClone(panelClone) {
+    const graphActions = panelClone?.querySelector(".graph-actions");
+    if (!graphActions) return;
+    // Keep action buttons at their original UI position in the print clone.
+    graphActions.classList.remove("print-actions-below-table");
+  }
+
+  function freezeMeterLabelPositionsForPrint(sourcePanel, panelClone) {
+    const sourceMeters = sourcePanel?.querySelector(".meters");
+    const cloneMeters = panelClone?.querySelector(".meters");
+    if (!sourceMeters || !cloneMeters) return;
+
+    const meterLabelIds = ["ammter1-label", "voltmeter1-label", "ammter2-label", "voltmeter2-label"];
+    const sourceMetersRect = sourceMeters.getBoundingClientRect();
+
+    meterLabelIds.forEach((labelId) => {
+      const sourceLabel = sourcePanel.querySelector(`#${labelId}`);
+      const cloneLabel = panelClone.querySelector(`#${labelId}`);
+      if (!sourceLabel || !cloneLabel) return;
+
+      const labelRect = sourceLabel.getBoundingClientRect();
+      const frozenLeft = Math.round(labelRect.left - sourceMetersRect.left);
+      const frozenTop = Math.round(labelRect.top - sourceMetersRect.top);
+
+      cloneLabel.style.position = "absolute";
+      cloneLabel.style.left = `${frozenLeft}px`;
+      cloneLabel.style.top = `${frozenTop}px`;
+      cloneLabel.style.margin = "0";
+      cloneLabel.style.transform = "none";
+      cloneLabel.style.gridColumn = "auto";
+      cloneLabel.style.gridRow = "auto";
+      cloneLabel.style.zIndex = "8";
+    });
+
+    cloneMeters.style.position = "relative";
+  }
+
+  // Simple print path: clone panel/footer, print clone only, then clean up.
+  async function simplePrintSimulation() {
+    if (printLaunchInProgress) return;
+    printLaunchInProgress = true;
+
+    const panel = document.querySelector(".panel");
+    const panelFooter = document.querySelector(".panel-footer");
+    if (!panel || !panelFooter || !document.body) {
+      printLaunchInProgress = false;
+      window.print();
+      return;
+    }
+
+    if (speechIsActive()) {
+      window.labSpeech.speak("Opening the print dialog.");
+    }
+
+    cleanupSimulationPrintContainer();
+
+    if (window.jsPlumb && typeof window.jsPlumb.repaintEverything === "function") {
+      try {
+        window.jsPlumb.repaintEverything();
+      } catch {}
+    }
+
+    await waitForNextFrame();
+    await waitForPrintAssets([panel, panelFooter]);
+    await wait(60);
+
+    const panelRect = panel.getBoundingClientRect();
+    const panelFooterRect = panelFooter.getBoundingClientRect();
+    const frozenPrintWidth = Math.max(
+      1,
+      Math.ceil(panelRect.width || panel.offsetWidth || 0),
+      Math.ceil(panelFooterRect.width || panelFooter.offsetWidth || 0)
+    );
+
+    const printContainer = document.createElement("div");
+    printContainer.id = SIM_PRINT_CONTAINER_ID;
+    printContainer.setAttribute("aria-hidden", "true");
+    printContainer.style.setProperty("--simulation-print-scale", String(SIM_PRINT_CLONE_SCALE));
+    printContainer.style.width = `${frozenPrintWidth}px`;
+    printContainer.style.maxWidth = "none";
+    printContainer.style.overflow = "visible";
+
+    const panelClone = panel.cloneNode(true);
+    const panelFooterClone = panelFooter.cloneNode(true);
+    panelClone.classList.add("print-clone-panel");
+    panelFooterClone.classList.add("print-clone-footer");
+    normalizePrintPanelClone(panelClone);
+    freezeMeterLabelPositionsForPrint(panel, panelClone);
+
+    // Freeze the clone at desktop geometry so print media queries do not reflow point positions.
+    panelClone.style.width = `${Math.ceil(panelRect.width || panel.offsetWidth || frozenPrintWidth)}px`;
+    panelClone.style.maxWidth = "none";
+    panelClone.style.maxHeight = "none";
+    panelClone.style.overflow = "visible";
+    panelClone.setAttribute("data-print-frozen", "true");
+
+    panelFooterClone.style.width = `${Math.ceil(panelFooterRect.width || panelFooter.offsetWidth || frozenPrintWidth)}px`;
+    panelFooterClone.style.maxWidth = "none";
+    panelFooterClone.style.maxHeight = "none";
+    panelFooterClone.style.overflow = "visible";
+    panelFooterClone.setAttribute("data-print-frozen", "true");
+
+    await syncPlotlyGraphForPrint(panelFooter, panelFooterClone);
+
+    printContainer.append(panelClone, panelFooterClone);
+    document.body.appendChild(printContainer);
+    document.body.classList.add(SIM_PRINT_ACTIVE_CLASS);
+
+    let cleanedUp = false;
+    let fallbackTimerId = 0;
+
+    const cleanupAfterPrint = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
+      window.clearTimeout(fallbackTimerId);
+      cleanupSimulationPrintContainer();
+      printLaunchInProgress = false;
+    };
+
+    window.addEventListener("afterprint", cleanupAfterPrint, { once: true });
+    fallbackTimerId = window.setTimeout(cleanupAfterPrint, 120000);
+
+    try {
+      await waitForNextFrame();
+      window.print();
+    } catch (error) {
+      console.warn("Unable to open print dialog.", error);
+      cleanupAfterPrint();
+    }
+  }
+  window.simplePrintSimulation = simplePrintSimulation;
+
   if (resetBtn) resetBtn.addEventListener("click", resetObservations);
   if (printBtn) {
-    printBtn.addEventListener("click", launchSimulationPrint);
+    printBtn.addEventListener("click", simplePrintSimulation);
   }
   document.addEventListener("keydown", (event) => {
     const printShortcut = (event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "p";
     if (!printShortcut) return;
     event.preventDefault();
-    launchSimulationPrint();
+    simplePrintSimulation();
   });
   if (reportBtn) {
     reportBtn.addEventListener("click", handleReportClick);
@@ -3203,240 +3393,5 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (modal.classList.contains("is-hidden")) return;
     if (e.key === "Escape") closeComponentsModal({ showAlert: true });
   });
-})();
-
-/**
- * Keep the printed layout identical to the on‑screen layout by dynamically
- * scaling the panel to the available print width and locking the desktop
- * breakpoints even inside the print dialog.
- */
-(function setupPrintScaling() {
-  let printSnapshotHostEl = null;
-  let html2CanvasLoadingPromise = null;
-  let snapshotInProgress = false;
-  const SNAPSHOT_CAPTURE_TIMEOUT_MS = 1800;
-
-  function repaintPlumbing() {
-    if (window.jsPlumb && typeof window.jsPlumb.repaintEverything === "function") {
-      const repaint = () => {
-        try {
-          window.jsPlumb.repaintEverything();
-        } catch {}
-      };
-      requestAnimationFrame(repaint);
-      setTimeout(repaint, 120);
-    }
-  }
-
-  function cleanupPrintSnapshots() {
-    if (printSnapshotHostEl) {
-      printSnapshotHostEl.remove();
-      printSnapshotHostEl = null;
-    }
-    document.body.classList.remove("print-with-simulation-snapshots");
-  }
-
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async function waitForPrintAssets(targets) {
-    const fontPromise =
-      document.fonts && typeof document.fonts.ready?.then === "function"
-        ? document.fonts.ready.catch(() => {})
-        : Promise.resolve();
-
-    const imageElements = [];
-    targets.forEach((target) => {
-      if (!target || !target.querySelectorAll) return;
-      target.querySelectorAll("img").forEach((img) => imageElements.push(img));
-    });
-
-    const imagePromises = imageElements.map((img) => {
-      if (img.complete) return Promise.resolve();
-      return new Promise((resolve) => {
-        const done = () => resolve();
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
-      });
-    });
-
-    const readyPromise = Promise.all([fontPromise, Promise.all(imagePromises)]);
-    await Promise.race([readyPromise, wait(SNAPSHOT_CAPTURE_TIMEOUT_MS)]);
-  }
-
-  async function captureWithRetries(capture, panel, panelFooter, baseOptions, scales) {
-    for (const scale of scales) {
-      try {
-        const options = { ...baseOptions, scale };
-        const [panelCanvas, footerCanvas] = await Promise.all([
-          capture(panel, options),
-          capture(panelFooter, options)
-        ]);
-        if (panelCanvas && footerCanvas) {
-          return { panelCanvas, footerCanvas };
-        }
-      } catch {}
-    }
-    return null;
-  }
-
-  function ensureHtml2Canvas() {
-    if (typeof window.html2canvas === "function") return Promise.resolve(window.html2canvas);
-    if (html2CanvasLoadingPromise) return html2CanvasLoadingPromise;
-
-    html2CanvasLoadingPromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
-      script.async = true;
-      script.onload = () => {
-        if (typeof window.html2canvas === "function") resolve(window.html2canvas);
-        else reject(new Error("html2canvas did not initialize."));
-      };
-      script.onerror = () => reject(new Error("Failed to load html2canvas."));
-      document.head.appendChild(script);
-    });
-
-    return html2CanvasLoadingPromise;
-  }
-
-  async function preparePrintSnapshotsForPrint() {
-    if (snapshotInProgress) return false;
-    const panel = document.querySelector(".panel");
-    const panelFooter = document.querySelector(".panel-footer");
-    if (!panel || !panelFooter) return false;
-
-    let capture = null;
-    try {
-      capture = await ensureHtml2Canvas();
-    } catch {
-      return false;
-    }
-    if (typeof capture !== "function") return false;
-
-    snapshotInProgress = true;
-    try {
-      cleanupPrintSnapshots();
-      if (typeof window.preparePrintLayout === "function") {
-        window.preparePrintLayout();
-      }
-      repaintPlumbing();
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      await waitForPrintAssets([panel, panelFooter]);
-      await wait(100);
-
-      const captureOptions = {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        scrollX: 0,
-        scrollY: 0,
-        logging: false,
-        removeContainer: true,
-        imageTimeout: SNAPSHOT_CAPTURE_TIMEOUT_MS,
-        ignoreElements: (el) =>
-          el?.id === "componentsModal" ||
-          el?.id === "instructionModal" ||
-          el?.id === "warningModal" ||
-          el?.classList?.contains("components-overlay") ||
-          el?.classList?.contains("modal") ||
-          el?.classList?.contains("chatbot-widget")
-      };
-
-      const deviceScale = Number(window.devicePixelRatio) || 1;
-      const preferredScale = Math.min(1.5, Math.max(1, deviceScale));
-      const captureResult = await captureWithRetries(
-        capture,
-        panel,
-        panelFooter,
-        captureOptions,
-        [preferredScale, 1.2, 1]
-      );
-      if (!captureResult) return false;
-      const { panelCanvas, footerCanvas } = captureResult;
-
-      const makeSnapshotPage = (canvas, altText) => {
-        const page = document.createElement("section");
-        page.className = "print-snapshot-page";
-        page.setAttribute("data-print-snapshot-page", "true");
-        const img = new Image();
-        img.src = canvas.toDataURL("image/png");
-        img.alt = altText;
-        img.loading = "eager";
-        page.appendChild(img);
-        return page;
-      };
-
-      const host = document.createElement("div");
-      host.className = "print-snapshot-host";
-      host.setAttribute("data-print-snapshot-host", "true");
-      host.appendChild(makeSnapshotPage(panelCanvas, "Simulation panel snapshot"));
-      host.appendChild(makeSnapshotPage(footerCanvas, "Output graph snapshot"));
-
-      document.body.insertBefore(host, document.body.firstChild);
-      printSnapshotHostEl = host;
-      document.body.classList.add("print-with-simulation-snapshots");
-      return true;
-    } catch (error) {
-      console.warn("Print snapshot capture failed; falling back to normal print.", error);
-      cleanupPrintSnapshots();
-      return false;
-    } finally {
-      snapshotInProgress = false;
-    }
-  }
-
-  function updatePrintScale() {
-    const panel = document.querySelector(".panel");
-    if (!panel) return;
-    const panelFooter = document.querySelector(".panel-footer");
-
-    // Keep print sizing stable across monitors by using paper dimensions.
-    const mmToPx = 96 / 25.4;
-    const a4LandscapeWidthMm = 297;
-    const pageMarginMm = 10 * 2;
-    const available = Math.max(320, (a4LandscapeWidthMm - pageMarginMm) * mmToPx);
-    const needed = Math.max(
-      panel.scrollWidth || 0,
-      panel.offsetWidth || 0,
-      panelFooter?.scrollWidth || 0,
-      panelFooter?.offsetWidth || 0
-    );
-    if (!needed) return;
-
-    const scale = Math.min(1, Math.max(0.35, available / needed));
-    document.documentElement.style.setProperty("--print-scale", scale.toFixed(3));
-
-    repaintPlumbing();
-
-    const graphPlotEl = document.getElementById("graphPlot");
-    if (window.Plotly && graphPlotEl && graphPlotEl.style.display !== "none") {
-      requestAnimationFrame(() => {
-        try {
-          window.Plotly.Plots.resize(graphPlotEl);
-        } catch {}
-      });
-    }
-  }
-
-  function clearPrintScale() {
-    document.documentElement.style.removeProperty("--print-scale");
-    cleanupPrintSnapshots();
-  }
-
-  window.preparePrintLayout = updatePrintScale;
-  window.preparePrintSnapshotsForPrint = preparePrintSnapshotsForPrint;
-  window.addEventListener("beforeprint", updatePrintScale);
-  window.addEventListener("afterprint", clearPrintScale);
-
-  if (window.matchMedia) {
-    const mq = window.matchMedia("print");
-    const listener = (e) => {
-      if (e.matches) updatePrintScale();
-      else clearPrintScale();
-    };
-    // Support modern and older browsers
-    mq.addEventListener ? mq.addEventListener("change", listener) : mq.addListener(listener);
-  }
 })();
 

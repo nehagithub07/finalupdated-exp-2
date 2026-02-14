@@ -2381,204 +2381,156 @@ body.is-modal-open {
 /* =========================
    PRINT LAYOUT
 ========================= */
-.print-snapshot-host,
-.print-snapshot-page {
+#simulation-print-container {
   display: none;
 }
 
 @media print {
-  :root {
-    /* Downscale the whole experience while keeping the exact layout proportions */
-    --print-scale: 0.58;
-  }
-
   @page {
-    size: A4 landscape;
     margin: 10mm;
   }
 
   html,
   body {
-    width: auto !important;
-    min-width: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
-    background: var(--bg);
+    background: #fff !important;
   }
 
-  body {
+  /* Print only the temporary cloned simulation content. */
+  body.simulation-print-active {
     display: block !important;
-    /* Scale everything instead of reflowing the grid so the printed view matches the UI */
-    zoom: var(--print-scale);
-    transform-origin: top left;
   }
 
-  body.print-with-simulation-snapshots {
-    zoom: 1 !important;
-    transform: none !important;
-    width: auto !important;
-  }
-
-  body.print-with-simulation-snapshots .panel,
-  body.print-with-simulation-snapshots .panel-footer {
+  body.simulation-print-active > * {
     display: none !important;
   }
 
-  body.print-with-simulation-snapshots .print-snapshot-host {
+  body.simulation-print-active > #simulation-print-container {
     display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    /* Scale only the temporary print clone so full panel fits on the page. */
+    zoom: var(--simulation-print-scale, 0.78) !important;
   }
 
-  body.print-with-simulation-snapshots .print-snapshot-page {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    border: 3px solid var(--ink) !important;
-    border-radius: 8px !important;
+  body.simulation-print-active #simulation-print-container .panel,
+  body.simulation-print-active #simulation-print-container .panel-footer {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  /* Keep desktop geometry so print output matches the UI layout. */
+  body.simulation-print-active #simulation-print-container .top-row {
+    grid-template-columns: 1fr 2.6fr 1.2fr !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .left-column,
+  body.simulation-print-active #simulation-print-container .center-column {
+    border-bottom: none !important;
+    border-right: 3px solid var(--ink) !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .observation-floating {
+    position: absolute !important;
+    top: 250px !important;
+    right: -30px !important;
+    transform: translateX(calc(100% + clamp(2px, 0.8vw, 6px))) !important;
+    width: clamp(250px, 24vw, 370px) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    z-index: 2 !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .observation-table-wrapper {
     overflow: hidden !important;
-    box-sizing: border-box !important;
-    margin-top: 10px !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid-page !important;
   }
 
-  body.print-with-simulation-snapshots .print-snapshot-page + .print-snapshot-page {
-    break-before: page !important;
+  body.simulation-print-active #simulation-print-container #observationTable {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  body.simulation-print-active #simulation-print-container #observationTable th {
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.15 !important;
+    font-size: 0.62rem !important;
+    padding: 3px 3px !important;
+  }
+
+  body.simulation-print-active #simulation-print-container #observationTable td {
+    white-space: nowrap !important;
+    font-size: 0.72rem !important;
+    padding: 3px 3px !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .graph-actions {
+    position: relative !important;
+    top: 420px !important;
+    left: 1010px !important;
+    transform: scale(0.6) !important;
+    transform-origin: top left !important;
+    width: max-content !important;
+  }
+
+  /* Prevent print viewport breakpoints from moving endpoint label geometry. */
+  body.simulation-print-active #simulation-print-container .meters {
+    grid-template-columns: repeat(4, minmax(140px, 1fr)) !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .meter-card {
+    min-width: 140px !important;
+    grid-row: 1 !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .meter-card:nth-child(3),
+  body.simulation-print-active #simulation-print-container .meter-card:nth-child(4) {
+    grid-row: 1 !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .panel {
+    border-width: 2px !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .panel-footer {
     page-break-before: always !important;
-    margin-top: 0 !important;
+    break-before: page !important;
   }
 
-  body.print-with-simulation-snapshots .print-snapshot-page img {
+  body.simulation-print-active #simulation-print-container .print-clone-footer .graph-section,
+  body.simulation-print-active #simulation-print-container .print-clone-footer .graph-canvas,
+  body.simulation-print-active #simulation-print-container .print-clone-footer #graphPlot {
+    overflow: visible !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .print-plot-image {
     display: block !important;
     width: 100% !important;
     height: auto !important;
   }
 
-  /* Fallback for browsers that do not support zoom (e.g., Firefox) */
-  @supports not (zoom: 1) {
-    body {
-      display: block !important;
-      transform: scale(var(--print-scale));
-      width: calc(100% / var(--print-scale));
-    }
-
-    body.print-with-simulation-snapshots {
-      transform: none !important;
-      width: auto !important;
-    }
+  body.simulation-print-active #simulation-print-container .jtk-connector,
+  body.simulation-print-active #simulation-print-container .jtk-endpoint,
+  body.simulation-print-active #simulation-print-container .jtk-overlay {
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
-  /* Force desktop layout even if the print viewport is narrow */
-  .top-row {
-    grid-template-columns: 1fr 2.6fr 1.2fr !important;
-    /* Match on-screen geometry to keep jsPlumb points/wires aligned */
-    padding-bottom: clamp(120px, 1.5vw, 10px) !important;
-  }
-
-  .left-column,
-  .center-column {
-    border-right: 3px solid var(--ink);
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .observation-floating {
-    position: absolute !important;
-    top: 250px !important;
-    right: -50px !important;
-    transform: translateX(calc(100% + clamp(8px, 2vw, 16px))) !important;
-    width: clamp(220px, 22vw, 340px) !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    margin-top: 0 !important;
-    margin-left: 0 !important;
-  }
-
-  .observation-header {
-    right: 10px !important;
-    justify-content: space-between !important;
-  }
-
-  .table-label {
-    left: 60px !important;
-  }
-
-  .observation-table-wrapper {
-    overflow: visible !important;
-  }
-
-  #observationTable th,
-  #observationTable td {
-    white-space: nowrap !important;
-  }
-
-  .observation-section,
-  .graph-section,
-  .panel-footer {
-    page-break-inside: avoid;
-  }
-
-  .panel,
-  .panel-footer {
-    width: var(--panel-max) !important;
-    max-width: none !important;
-    max-height: none !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-    border: 3px solid var(--ink) !important;
-    border-radius: 8px !important;
-    box-sizing: border-box !important;
-    box-shadow: none;
-    page-break-inside: avoid;
-  }
-
-  /* Print in two pages:
-     Page 1 -> main simulation panel (with observation table/buttons)
-     Page 2 -> output graph footer panel */
-  .panel {
-    break-after: page !important;
-    page-break-after: always !important;
-    margin-top: 22px !important;
-    margin-bottom: 0 !important;
-  }
-
-  .panel-footer {
-    break-before: page !important;
-    page-break-before: always !important;
-    margin-top: 0 !important;
-  }
-
-  #pill-stack {
-    min-width: 350px !important;
-    max-width: 500px !important;
-    margin-top: 20px !important;
-    margin-left: 0 !important;
-  }
-
-  #pill-stack .pill-btn {
-    right: 50px !important;
-  }
-
-  .graph-actions {
-    position: relative !important;
-    top: 420px !important;
-    left: 1010px !important;
-    right: auto !important;
-    transform: scale(0.6) !important;
-    transform-origin: top left !important;
-    width: max-content !important;
-    margin: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 10px !important;
-    flex-wrap: nowrap !important;
-    z-index: 5 !important;
-  }
-
-  /* Hide only overlays/helpers during print */
+  /* Hide helper overlays if native print is triggered directly. */
   #componentsModal,
   #instructionModal,
   .components-overlay,
@@ -2587,26 +2539,6 @@ body.is-modal-open {
   .instruction-overlay,
   .chatbot-widget,
   .hover-tooltip {
-    display: none !important;
-  }
-
-  .graph-canvas {
-    overflow: visible !important;
-  }
-
-  .graph-canvas.is-plotting .graph-bars {
-    display: none !important;
-  }
-
-  .graph-canvas.is-plotting #graphPlot {
-    display: block !important;
-  }
-
-  .graph-canvas:not(.is-plotting) .graph-bars {
-    display: flex !important;
-  }
-
-  .graph-canvas:not(.is-plotting) #graphPlot {
     display: none !important;
   }
 }
