@@ -866,8 +866,19 @@ function setupJsPlumb() {
       findButtonByLabel("Add Table") ||
       findButtonByLabel("Add To Table") ||
       findButtonByLabel("Add");
+    const autoBtn = findButtonByLabel("Auto Connect");
+    const disableAutoOnCheckedSpeech = connectionsVerified && guideSpeechActive();
     if (lampSelect) lampSelect.disabled = !ready;
     if (addBtn) addBtn.disabled = !ready;
+    if (autoBtn) {
+      if (disableAutoOnCheckedSpeech) {
+        autoBtn.dataset.guideLocked = "1";
+        autoBtn.disabled = true;
+      } else if (autoBtn.dataset.guideLocked === "1" && !isAutoConnecting) {
+        autoBtn.disabled = false;
+        delete autoBtn.dataset.guideLocked;
+      }
+    }
     updateStarterUI();
     updateRotorSpin();
   }
@@ -1361,6 +1372,7 @@ function setupJsPlumb() {
       speakBtn.setAttribute("aria-pressed", "true");
       const label = speakBtn.querySelector(".speak-btn__label");
       if (label) label.textContent = "Guiding...";
+      updateControlLocks();
     }
 
     function speakGuide(text, options = {}) {
@@ -1462,6 +1474,7 @@ function setupJsPlumb() {
       if (resetUI) {
         resetSpeakButtonUI();
       }
+      updateControlLocks();
     }
 
     window.labSpeech.isActive = () => guideActive;
