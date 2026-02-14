@@ -2475,11 +2475,22 @@ body.is-modal-open {
     padding: 3px 3px !important;
   }
 
+  /* Print-only fine tune: lamp-load L1/L2 points slightly lower. */
+  body.simulation-print-active #simulation-print-container #pointL1,
+  body.simulation-print-active #simulation-print-container #pointL2 {
+    top: 286px !important;
+  }
+
+  body.simulation-print-active #simulation-print-container .point-L1,
+  body.simulation-print-active #simulation-print-container .point-L2 {
+    top: 300px !important;
+  }
+
   body.simulation-print-active #simulation-print-container .graph-actions {
     position: relative !important;
-    top: 420px !important;
-    left: 1010px !important;
-    transform: scale(0.6) !important;
+    top: 390px !important;
+    left: 990px !important;
+    transform: scale(0.5) !important;
     transform-origin: top left !important;
     width: max-content !important;
   }

@@ -2656,6 +2656,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (!sourceMeters || !cloneMeters) return;
 
     const meterLabelIds = ["ammter1-label", "voltmeter1-label", "ammter2-label", "voltmeter2-label"];
+    const PRINT_LABEL_X_OFFSET = -14;
+    const PRINT_LABEL_Y_OFFSET = -6;
     const sourceMetersRect = sourceMeters.getBoundingClientRect();
 
     meterLabelIds.forEach((labelId) => {
@@ -2664,8 +2666,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
       if (!sourceLabel || !cloneLabel) return;
 
       const labelRect = sourceLabel.getBoundingClientRect();
-      const frozenLeft = Math.round(labelRect.left - sourceMetersRect.left);
-      const frozenTop = Math.round(labelRect.top - sourceMetersRect.top);
+      const frozenLeft = Math.round(labelRect.left - sourceMetersRect.left + PRINT_LABEL_X_OFFSET);
+      const frozenTop = Math.round(labelRect.top - sourceMetersRect.top + PRINT_LABEL_Y_OFFSET);
 
       cloneLabel.style.position = "absolute";
       cloneLabel.style.left = `${frozenLeft}px`;
@@ -2674,7 +2676,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
       cloneLabel.style.transform = "none";
       cloneLabel.style.gridColumn = "auto";
       cloneLabel.style.gridRow = "auto";
-      cloneLabel.style.zIndex = "8";
+      cloneLabel.style.zIndex = "4";
     });
 
     cloneMeters.style.position = "relative";
