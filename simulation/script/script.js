@@ -2562,15 +2562,39 @@ tr:nth-child(even) { background-color: #f8fbff; }
     });
   }
 
-  if (resetBtn) resetBtn.addEventListener("click", resetObservations);
-  if (printBtn) {
-    printBtn.addEventListener("click", () => {
+  let printLaunchInProgress = false;
+  async function launchSimulationPrint() {
+    if (printLaunchInProgress) return;
+    printLaunchInProgress = true;
+    try {
       if (speechIsActive()) {
         window.labSpeech.speak("Opening the print dialog.");
       }
+      if (typeof window.preparePrintLayout === "function") {
+        window.preparePrintLayout();
+      }
+      if (typeof window.preparePrintSnapshotsForPrint === "function") {
+        // Try exact snapshot print first; if it fails, fall back to normal print.
+        try {
+          await window.preparePrintSnapshotsForPrint();
+        } catch {}
+      }
       window.print();
-    });
+    } finally {
+      printLaunchInProgress = false;
+    }
   }
+
+  if (resetBtn) resetBtn.addEventListener("click", resetObservations);
+  if (printBtn) {
+    printBtn.addEventListener("click", launchSimulationPrint);
+  }
+  document.addEventListener("keydown", (event) => {
+    const printShortcut = (event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "p";
+    if (!printShortcut) return;
+    event.preventDefault();
+    launchSimulationPrint();
+  });
   if (reportBtn) {
     reportBtn.addEventListener("click", handleReportClick);
     reportBtn.disabled = true;
@@ -3187,25 +3211,221 @@ tr:nth-child(even) { background-color: #f8fbff; }
  * breakpoints even inside the print dialog.
  */
 (function setupPrintScaling() {
+  let printSnapshotHostEl = null;
+  let html2CanvasLoadingPromise = null;
+  let snapshotInProgress = false;
+  const SNAPSHOT_CAPTURE_TIMEOUT_MS = 1800;
+
+  function repaintPlumbing() {
+    if (window.jsPlumb && typeof window.jsPlumb.repaintEverything === "function") {
+      const repaint = () => {
+        try {
+          window.jsPlumb.repaintEverything();
+        } catch {}
+      };
+      requestAnimationFrame(repaint);
+      setTimeout(repaint, 120);
+    }
+  }
+
+  function cleanupPrintSnapshots() {
+    if (printSnapshotHostEl) {
+      printSnapshotHostEl.remove();
+      printSnapshotHostEl = null;
+    }
+    document.body.classList.remove("print-with-simulation-snapshots");
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function waitForPrintAssets(targets) {
+    const fontPromise =
+      document.fonts && typeof document.fonts.ready?.then === "function"
+        ? document.fonts.ready.catch(() => {})
+        : Promise.resolve();
+
+    const imageElements = [];
+    targets.forEach((target) => {
+      if (!target || !target.querySelectorAll) return;
+      target.querySelectorAll("img").forEach((img) => imageElements.push(img));
+    });
+
+    const imagePromises = imageElements.map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    });
+
+    const readyPromise = Promise.all([fontPromise, Promise.all(imagePromises)]);
+    await Promise.race([readyPromise, wait(SNAPSHOT_CAPTURE_TIMEOUT_MS)]);
+  }
+
+  async function captureWithRetries(capture, panel, panelFooter, baseOptions, scales) {
+    for (const scale of scales) {
+      try {
+        const options = { ...baseOptions, scale };
+        const [panelCanvas, footerCanvas] = await Promise.all([
+          capture(panel, options),
+          capture(panelFooter, options)
+        ]);
+        if (panelCanvas && footerCanvas) {
+          return { panelCanvas, footerCanvas };
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  function ensureHtml2Canvas() {
+    if (typeof window.html2canvas === "function") return Promise.resolve(window.html2canvas);
+    if (html2CanvasLoadingPromise) return html2CanvasLoadingPromise;
+
+    html2CanvasLoadingPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+      script.async = true;
+      script.onload = () => {
+        if (typeof window.html2canvas === "function") resolve(window.html2canvas);
+        else reject(new Error("html2canvas did not initialize."));
+      };
+      script.onerror = () => reject(new Error("Failed to load html2canvas."));
+      document.head.appendChild(script);
+    });
+
+    return html2CanvasLoadingPromise;
+  }
+
+  async function preparePrintSnapshotsForPrint() {
+    if (snapshotInProgress) return false;
+    const panel = document.querySelector(".panel");
+    const panelFooter = document.querySelector(".panel-footer");
+    if (!panel || !panelFooter) return false;
+
+    let capture = null;
+    try {
+      capture = await ensureHtml2Canvas();
+    } catch {
+      return false;
+    }
+    if (typeof capture !== "function") return false;
+
+    snapshotInProgress = true;
+    try {
+      cleanupPrintSnapshots();
+      if (typeof window.preparePrintLayout === "function") {
+        window.preparePrintLayout();
+      }
+      repaintPlumbing();
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await waitForPrintAssets([panel, panelFooter]);
+      await wait(100);
+
+      const captureOptions = {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+        removeContainer: true,
+        imageTimeout: SNAPSHOT_CAPTURE_TIMEOUT_MS,
+        ignoreElements: (el) =>
+          el?.id === "componentsModal" ||
+          el?.id === "instructionModal" ||
+          el?.id === "warningModal" ||
+          el?.classList?.contains("components-overlay") ||
+          el?.classList?.contains("modal") ||
+          el?.classList?.contains("chatbot-widget")
+      };
+
+      const deviceScale = Number(window.devicePixelRatio) || 1;
+      const preferredScale = Math.min(1.5, Math.max(1, deviceScale));
+      const captureResult = await captureWithRetries(
+        capture,
+        panel,
+        panelFooter,
+        captureOptions,
+        [preferredScale, 1.2, 1]
+      );
+      if (!captureResult) return false;
+      const { panelCanvas, footerCanvas } = captureResult;
+
+      const makeSnapshotPage = (canvas, altText) => {
+        const page = document.createElement("section");
+        page.className = "print-snapshot-page";
+        page.setAttribute("data-print-snapshot-page", "true");
+        const img = new Image();
+        img.src = canvas.toDataURL("image/png");
+        img.alt = altText;
+        img.loading = "eager";
+        page.appendChild(img);
+        return page;
+      };
+
+      const host = document.createElement("div");
+      host.className = "print-snapshot-host";
+      host.setAttribute("data-print-snapshot-host", "true");
+      host.appendChild(makeSnapshotPage(panelCanvas, "Simulation panel snapshot"));
+      host.appendChild(makeSnapshotPage(footerCanvas, "Output graph snapshot"));
+
+      document.body.insertBefore(host, document.body.firstChild);
+      printSnapshotHostEl = host;
+      document.body.classList.add("print-with-simulation-snapshots");
+      return true;
+    } catch (error) {
+      console.warn("Print snapshot capture failed; falling back to normal print.", error);
+      cleanupPrintSnapshots();
+      return false;
+    } finally {
+      snapshotInProgress = false;
+    }
+  }
+
   function updatePrintScale() {
     const panel = document.querySelector(".panel");
     if (!panel) return;
+    const panelFooter = document.querySelector(".panel-footer");
 
-    // Approximate printable width: viewport minus the 10mm page margins set in CSS
-    const pxPerMm = 3.78; // 96dpi → 1mm ≈ 3.78px
-    const marginPx = 10 * pxPerMm * 2; // left + right
-    const available = Math.max(320, window.innerWidth - marginPx);
-    const needed = Math.max(panel.scrollWidth || 0, panel.offsetWidth || 0);
+    // Keep print sizing stable across monitors by using paper dimensions.
+    const mmToPx = 96 / 25.4;
+    const a4LandscapeWidthMm = 297;
+    const pageMarginMm = 10 * 2;
+    const available = Math.max(320, (a4LandscapeWidthMm - pageMarginMm) * mmToPx);
+    const needed = Math.max(
+      panel.scrollWidth || 0,
+      panel.offsetWidth || 0,
+      panelFooter?.scrollWidth || 0,
+      panelFooter?.offsetWidth || 0
+    );
     if (!needed) return;
 
     const scale = Math.min(1, Math.max(0.35, available / needed));
     document.documentElement.style.setProperty("--print-scale", scale.toFixed(3));
+
+    repaintPlumbing();
+
+    const graphPlotEl = document.getElementById("graphPlot");
+    if (window.Plotly && graphPlotEl && graphPlotEl.style.display !== "none") {
+      requestAnimationFrame(() => {
+        try {
+          window.Plotly.Plots.resize(graphPlotEl);
+        } catch {}
+      });
+    }
   }
 
   function clearPrintScale() {
     document.documentElement.style.removeProperty("--print-scale");
+    cleanupPrintSnapshots();
   }
 
+  window.preparePrintLayout = updatePrintScale;
+  window.preparePrintSnapshotsForPrint = preparePrintSnapshotsForPrint;
   window.addEventListener("beforeprint", updatePrintScale);
   window.addEventListener("afterprint", clearPrintScale);
 
@@ -3213,8 +3433,10 @@ tr:nth-child(even) { background-color: #f8fbff; }
     const mq = window.matchMedia("print");
     const listener = (e) => {
       if (e.matches) updatePrintScale();
+      else clearPrintScale();
     };
     // Support modern and older browsers
     mq.addEventListener ? mq.addEventListener("change", listener) : mq.addListener(listener);
   }
 })();
+

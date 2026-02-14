@@ -93,7 +93,7 @@
       gap: 1rem !important;
     }
 
-    #printBtn,
+ 
     #downloadBtn,
     #resetBtn {
       border-radius: 4px !important;
@@ -103,13 +103,13 @@
       line-height: 1.2 !important;
       padding: 0.5rem 0.9rem !important;
     }
-    #printBtn,
+ 
     #downloadBtn {
       background: #1f2937 !important;
       color: #ffffff !important;
       border: 1px solid #1f2937 !important;
     }
-    #printBtn:hover,
+    
     #downloadBtn:hover { background: #111827 !important; }
     #resetBtn {
       background: #ffffff !important;
@@ -215,6 +215,16 @@
       overflow: hidden;
       background: #ffffff;
     }
+    .simulation-print-snapshot {
+      display: none;
+      width: 100%;
+      background: #ffffff;
+    }
+    .simulation-print-snapshot img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
     .report-locked-card {
       background: #ffffff !important;
       border: 1px solid #d1d5db !important;
@@ -264,10 +274,12 @@
     .is-modal-open { overflow:hidden; }
 
     @media print {
-      header, footer, #printBtn, #downloadBtn, #resetBtn { display:none !important; }
+      header, footer, #downloadBtn, #resetBtn { display:none !important; }
       body { background:#fff !important; }
       #report-container { padding-top: 0 !important; padding-bottom: 0 !important; max-width: none !important; }
       .report-section { page-break-inside: avoid; break-inside: avoid-page; }
+      body.print-with-snapshot #reportSimulationSection #simulationReportFrame { display: none !important; }
+      body.print-with-snapshot #reportSimulationSection .simulation-print-snapshot { display: block !important; }
     }
   </style>
 
@@ -336,7 +348,7 @@
  
       </div>
       <div class="flex flex-wrap gap-2">
-        <button id="printBtn" class="px-4 py-2 font-semibold">Print</button>
+        
         <button id="downloadBtn" class="px-4 py-2 font-semibold">Download</button>
         <button id="resetBtn" class="px-4 py-2 font-semibold">Reset Data</button>
       </div>
@@ -394,6 +406,10 @@
     const reportLockedCTA = document.getElementById("reportLockedCTA");
     const contentEl = document.getElementById("content");
     let currentSimulationReport = null;
+    let simulationPrintSnapshotEl = null;
+    let printFrameOriginalHeight = null;
+    let printFrameOriginalMinHeight = null;
+    let printInProgress = false;
 
     function setReportContainerVisible(visible) {
       if (!reportContainer) return;
@@ -556,10 +572,10 @@
 
         <div class="report-grid-two">
           <section class="report-section">
-            <h2 class="report-section-title">Start / End</h2>
+            <h2 class="report-section-title">Experiment Timeline</h2>
             <div class="space-y-2 text-sm text-slate-800">
-              <div><span class="report-label">Session Start:</span>${escapeHTML(formatTimestamp(start) || start || "-")}</div>
-              <div><span class="report-label">Report Viewed:</span>${escapeHTML(formatTimestamp(end) || end || "-")}</div>
+              <div><span class="report-label">Session Start:</span> ${escapeHTML(formatTimelineDateTime(start) || start || "-")}</div>
+              <div><span class="report-label">Session End:</span> ${escapeHTML(formatTimelineDateTime(end) || end || "-")}</div>
             </div>
           </section>
           <section class="report-section">
@@ -571,7 +587,7 @@
         <section class="report-section">
           <div class="report-section-head">
             <h2 class="report-section-title" style="margin:0;">Assessment Scores</h2>
-            <span class="report-note">Auto-saved</span>
+            
           </div>
           <div class="report-table-wrap">
             <table class="report-table">
@@ -608,7 +624,30 @@
       const n = Number(value);
       const d = Number.isFinite(n) ? new Date(n) : new Date(value);
       if (Number.isNaN(d.getTime())) return null;
-      return d.toLocaleString();
+      return d.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function formatTimelineDateTime(value) {
+      if (!value) return null;
+      const n = Number(value);
+      const d = Number.isFinite(n) ? new Date(n) : new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      const datePart = d.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+      const timePart = d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true
+      });
+      return `${datePart}, ${timePart}`;
     }
 
     function getSimulationReportData() {
@@ -758,6 +797,86 @@
       img.style.width = "100%";
       img.loading = "lazy";
       return img;
+    }
+
+    function expandSimulationFrameForPrint() {
+      const frameEl = document.getElementById("simulationReportFrame");
+      if (!frameEl || frameEl.classList.contains("hidden")) return;
+
+      if (printFrameOriginalHeight === null) printFrameOriginalHeight = frameEl.style.height || "";
+      if (printFrameOriginalMinHeight === null) printFrameOriginalMinHeight = frameEl.style.minHeight || "";
+
+      try {
+        const doc = frameEl.contentDocument;
+        const body = doc?.body;
+        const docEl = doc?.documentElement;
+        const fullHeight = Math.max(
+          body?.scrollHeight || 0,
+          body?.offsetHeight || 0,
+          docEl?.scrollHeight || 0,
+          docEl?.offsetHeight || 0,
+          540
+        );
+        frameEl.style.height = `${fullHeight + 24}px`;
+        frameEl.style.minHeight = `${fullHeight + 24}px`;
+      } catch {}
+    }
+
+    function restoreSimulationFrameAfterPrint() {
+      const frameEl = document.getElementById("simulationReportFrame");
+      if (frameEl) {
+        frameEl.style.height = printFrameOriginalHeight ?? "";
+        frameEl.style.minHeight = printFrameOriginalMinHeight ?? "";
+      }
+      printFrameOriginalHeight = null;
+      printFrameOriginalMinHeight = null;
+    }
+
+    function clearSimulationPrintSnapshot() {
+      if (simulationPrintSnapshotEl) {
+        simulationPrintSnapshotEl.remove();
+        simulationPrintSnapshotEl = null;
+      }
+      document.body.classList.remove("print-with-snapshot");
+    }
+
+    async function prepareSimulationPrintSnapshot() {
+      const frameEl = document.getElementById("simulationReportFrame");
+      const sectionEl = document.getElementById("reportSimulationSection");
+      const frameWrap = sectionEl?.querySelector(".report-frame-wrap");
+      if (!frameEl || !frameWrap || frameEl.classList.contains("hidden")) return false;
+      if (typeof html2canvas !== "function") return false;
+
+      clearSimulationPrintSnapshot();
+      const snapshot = await captureSimulationFrameSnapshot(frameEl);
+      if (!snapshot) return false;
+
+      const holder = document.createElement("div");
+      holder.className = "simulation-print-snapshot";
+      holder.setAttribute("data-print-snapshot", "true");
+      holder.appendChild(snapshot);
+      frameWrap.appendChild(holder);
+
+      simulationPrintSnapshotEl = holder;
+      document.body.classList.add("print-with-snapshot");
+      return true;
+    }
+
+    async function handlePrintClick() {
+      if (printInProgress) return;
+      printInProgress = true;
+      try {
+        expandSimulationFrameForPrint();
+        try {
+          await prepareSimulationPrintSnapshot();
+        } catch (error) {
+          console.error("Print snapshot preparation failed", error);
+          clearSimulationPrintSnapshot();
+        }
+        window.print();
+      } finally {
+        printInProgress = false;
+      }
     }
 
     function createDetachedExportWrapper(widthPx) {
@@ -923,11 +1042,11 @@
     }
 
     // Buttons
-    const printBtn = document.getElementById("printBtn");
+    
     const downloadBtn = document.getElementById("downloadBtn");
     const resetBtn = document.getElementById("resetBtn");
 
-    printBtn?.addEventListener("click", () => window.print());
+    
     downloadBtn?.addEventListener("click", downloadReportCanvas);
     resetBtn?.addEventListener("click", () => {
       showReportAlert("Reset all saved user data, assessments, timings, and simulation report?", "Confirm Reset", {
@@ -937,6 +1056,14 @@
           showReportAlert("Reset done. Redirecting to Aim page.", "Reset Complete", { onClose: navigateToAim });
         }
       });
+    });
+
+    window.addEventListener("beforeprint", () => {
+      expandSimulationFrameForPrint();
+    });
+    window.addEventListener("afterprint", () => {
+      clearSimulationPrintSnapshot();
+      restoreSimulationFrameAfterPrint();
     });
 
     // Legacy export (kept for reference)
