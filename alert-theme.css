@@ -88,6 +88,10 @@ body.is-modal-open {
   box-shadow: 0 16px 35px rgba(11, 96, 168, 0.4);
 }
 
+.modal-box > .modal-close-btn[data-modal-close] {
+  margin-top: 1.6rem;
+}
+
 .modal-close-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 24px 45px rgba(11, 96, 168, 0.55);

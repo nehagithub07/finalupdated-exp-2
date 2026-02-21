@@ -663,10 +663,15 @@ h3 {
 }
 
 .hover-tooltip__text {
-  line-height: 1.35;
-  letter-spacing: 0.1px;
+  line-height: 1.45;
+  letter-spacing: 0;
   font-weight: 600;
   color: #152a44;
+  text-align: justify;
+  text-align-last: left;
+  text-justify: auto;
+  word-spacing: normal;
+  hyphens: auto;
 }
 
 /* ---- LABELS (always below meters, never cut) ---- */
@@ -1638,7 +1643,8 @@ body.is-modal-open {
 #modalMessage {
   color: #3b2f24;
   white-space: pre-line;
-  text-align: center;
+  text-align: justify;
+  text-align-last: center;
   line-height: 1.55;
   margin: 0;
 }

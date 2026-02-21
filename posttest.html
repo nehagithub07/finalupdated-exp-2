@@ -784,7 +784,7 @@
 
   <!-- Alert Modal (matches simulation popup style) -->
   <div id="warningModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalMessage">
-    <div class="modal-box danger" role="document">
+    <div class="modal-box" role="document">
       <h2 id="modalTitle">Alert</h2>
       <p id="modalMessage"></p>
       <div class="modal-actions">
@@ -946,7 +946,23 @@ function updateCheckButtonState() {
   checkBtn.disabled = false;
 }
 
+const POSTTEST_WELCOME_ALERT_MESSAGE = "Here, you will receive 5 questions at a time. Each time you click on the Refresh button, a new set of questions will be generated. Please note that all your attempted questions will be recorded and reflected in your Progress Report if you choose to generate it.";
+const POSTTEST_WELCOME_ALERT_AUDIO_SRC = "./audio/pretestpostestaudio.wav";
 let popupOnClose = null;
+
+function playMappedAlertAudio(soundEl, message) {
+  if (!soundEl || typeof soundEl.play !== "function") return;
+  const normalizedMessage = String(message || "").trim();
+  if (normalizedMessage !== POSTTEST_WELCOME_ALERT_MESSAGE) return;
+  if (soundEl.getAttribute("src") !== POSTTEST_WELCOME_ALERT_AUDIO_SRC) {
+    soundEl.setAttribute("src", POSTTEST_WELCOME_ALERT_AUDIO_SRC);
+  }
+  soundEl.currentTime = 0;
+  const playPromise = soundEl.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch(() => {});
+  }
+}
 
 function showPopup(message, title = "Alert", options = {}) {
   if (!message) return;
@@ -971,20 +987,14 @@ function showPopup(message, title = "Alert", options = {}) {
 
   if (box) {
     box.classList.remove("closing");
-    box.classList.add("danger");
+    box.classList.remove("danger");
   }
 
   modal.classList.add("show");
   document.body.classList.add("is-modal-open");
   window.setTimeout(() => okBtn?.focus?.(), 0);
 
-  if (sound && typeof sound.play === "function") {
-    sound.currentTime = 0;
-    const playPromise = sound.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  }
+  playMappedAlertAudio(sound, message);
 }
 
 function closePopup() {
@@ -1126,7 +1136,7 @@ checkBtn.addEventListener("click", () => {
 });
 
 /* ------------------ INITIALIZE ------------------ */
-const posttestWelcomeMessage = "Here, you will receive 5 questions at a time. Each time you click on the Refresh button, a new set of questions will be generated. Please note that all your attempted questions will be recorded and reflected in your Progress Report if you choose to generate it.";
+const posttestWelcomeMessage = POSTTEST_WELCOME_ALERT_MESSAGE;
 pickRandomSet();
 showPopup(posttestWelcomeMessage, "Welcome to the Posttest section");
 </script>

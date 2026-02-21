@@ -1679,6 +1679,8 @@
 
     const INTRO_STORAGE_KEY = 'dcShuntIntroShown:aim';
     const INTRO_STORAGE_VERSION = '1';
+    const AIM_READY_NOTICE_MESSAGE = "Now that you've understood the experiment workflow, you may proceed to perform the experiment independently at your own pace.";
+    const AIM_READY_NOTICE_AUDIO_SRC = "./audio/Infopanelalert.wav";
     const INTRO_STORAGE = (() => {
       try { return window.localStorage; }
       catch (error) {
@@ -1706,6 +1708,28 @@
     let finalMessageShown = false;
     let videoShown = false;
     let audioAutoplayQueued = false;
+    let aimReadyNoticeAudioEl = null;
+
+    function playAimReadyNoticeAudio() {
+      if (!AIM_READY_NOTICE_AUDIO_SRC) return;
+      if (!aimReadyNoticeAudioEl) {
+        aimReadyNoticeAudioEl = new Audio(AIM_READY_NOTICE_AUDIO_SRC);
+        aimReadyNoticeAudioEl.preload = 'auto';
+      }
+      aimReadyNoticeAudioEl.currentTime = 0;
+      const playPromise = aimReadyNoticeAudioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    }
+
+    function stopAimReadyNoticeAudio() {
+      if (!aimReadyNoticeAudioEl) return;
+      aimReadyNoticeAudioEl.pause();
+      aimReadyNoticeAudioEl.currentTime = 0;
+    }
+
+    window.stopAimReadyNoticeAudio = stopAimReadyNoticeAudio;
 
     const outlineItems = outlineList ? Array.from(outlineList.querySelectorAll('.outline-item')) : [];
 
@@ -1875,7 +1899,8 @@
       };
 
       if (shouldShowPostIntroNotice) {
-        const noticeMessage = "Now that you've understood the experiment workflow, you may proceed to perform the experiment independently at your own pace.";
+        const noticeMessage = AIM_READY_NOTICE_MESSAGE;
+        playAimReadyNoticeAudio();
         if (typeof window.showAimAlert === "function") {
           window.showAimAlert(noticeMessage, "Ready To Begin", proceedToUserPrompt);
         } else {
@@ -2595,14 +2620,61 @@
   const modal = document.getElementById("userFormPrompt");
   const yesBtn = document.getElementById("promptYes");
   const noBtn  = document.getElementById("promptNo");
+  const AIM_USER_FORM_PROMPT_AUDIO_SRC = "./audio/userinput.wav";
+  const AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE =
+    "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+  const AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC = "./audio/progressreportalert.wav";
+  let aimUserFormPromptAudioEl = null;
+  let aimProgressReportAccessAlertAudioEl = null;
+
+  function playAimUserFormPromptAudio() {
+    if (!AIM_USER_FORM_PROMPT_AUDIO_SRC) return;
+    if (!aimUserFormPromptAudioEl) {
+      aimUserFormPromptAudioEl = new Audio(AIM_USER_FORM_PROMPT_AUDIO_SRC);
+      aimUserFormPromptAudioEl.preload = "auto";
+    }
+    aimUserFormPromptAudioEl.currentTime = 0;
+    const playPromise = aimUserFormPromptAudioEl.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  }
+
+  function stopAimUserFormPromptAudio() {
+    if (!aimUserFormPromptAudioEl) return;
+    aimUserFormPromptAudioEl.pause();
+    aimUserFormPromptAudioEl.currentTime = 0;
+  }
+
+  function playAimProgressReportAccessAlertAudio(message) {
+    if (String(message || "").trim() !== AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE) return;
+    if (!AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC) return;
+    if (!aimProgressReportAccessAlertAudioEl) {
+      aimProgressReportAccessAlertAudioEl = new Audio(AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC);
+      aimProgressReportAccessAlertAudioEl.preload = "auto";
+    }
+    aimProgressReportAccessAlertAudioEl.currentTime = 0;
+    const playPromise = aimProgressReportAccessAlertAudioEl.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  }
+
+  function stopAimProgressReportAccessAlertAudio() {
+    if (!aimProgressReportAccessAlertAudioEl) return;
+    aimProgressReportAccessAlertAudioEl.pause();
+    aimProgressReportAccessAlertAudioEl.currentTime = 0;
+  }
 
   function openPrompt() {
     if (!modal) return;
     modal.classList.remove("hidden");
     modal.classList.add("flex");
+    playAimUserFormPromptAudio();
   }
 
   function closePrompt() {
+    stopAimUserFormPromptAudio();
     if (!modal) return;
     modal.classList.add("hidden");
     modal.classList.remove("flex");
@@ -2741,11 +2813,16 @@
     aimAlertModal.classList.add("show");
     document.body.classList.add("is-modal-open");
     aimAlertClose?.focus?.();
+    playAimProgressReportAccessAlertAudio(message);
   }
 
   window.showAimAlert = showAimAlert;
 
   function closeAimAlert() {
+    stopAimProgressReportAccessAlertAudio();
+    if (typeof window.stopAimReadyNoticeAudio === "function") {
+      window.stopAimReadyNoticeAudio();
+    }
     if (!aimAlertModal) return;
     aimAlertModal.classList.remove("show");
     document.body.classList.remove("is-modal-open");
@@ -2931,7 +3008,7 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+      const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
       showAimAlert(msg, "Instructions");
     }, true);
   });
@@ -2950,13 +3027,13 @@
     if (VLProgress.hasUser() && hasSimulationReport()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
     showAimAlert(msg, "Instructions");
   }, true);
 
   // If user loads aim.html#progressreport directly without user form
   if (window.location.hash === "#progressreport" && (!VLProgress.hasUser() || !hasSimulationReport())) {
-    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
     showAimAlert(msg, "Instructions");
   }
 

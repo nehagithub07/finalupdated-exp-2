@@ -998,6 +998,29 @@
     let popupMode = 'alert';
     let popupOnYes = null;
     let popupOnNo = null;
+    const SIMULATION_TABS_ALERT_MESSAGE =
+      "The Simulation section contains two tabs. The Demo tab provides a guided walkthrough on how to run the simulation, while the Simulation tab allows you to perform the experiment independently.\n\nClick on the Demo tab to view the demo.";
+    const SIMULATION_DEMO_REMINDER_ALERT_MESSAGE = "I hope you’ve completed the demo.";
+    const SIMULATION_DEMO_REQUIRED_ALERT_MESSAGE = "To proceed further, please complete the demo first.";
+    const SIMULATION_ALERT_AUDIO_SOURCES = {
+      [SIMULATION_TABS_ALERT_MESSAGE]: "./audio/simulationsection.wav",
+      [SIMULATION_DEMO_REMINDER_ALERT_MESSAGE]: "./audio/experimentopen.wav",
+      [SIMULATION_DEMO_REQUIRED_ALERT_MESSAGE]: "./audio/demotab.wav"
+    };
+
+    function playSimulationAlertAudio(soundEl, message) {
+      if (!soundEl || typeof soundEl.play !== 'function') return;
+      const audioSrc = SIMULATION_ALERT_AUDIO_SOURCES[String(message || '')];
+      if (!audioSrc) return;
+      if (soundEl.getAttribute('src') !== audioSrc) {
+        soundEl.setAttribute('src', audioSrc);
+      }
+      soundEl.currentTime = 0;
+      const playPromise = soundEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {});
+      }
+    }
 
     function showPopup(message, title = 'Alert', options = {}) {
       if (!message) return;
@@ -1059,13 +1082,7 @@
       modal.classList.add('show');
       document.body.classList.add('is-modal-open');
 
-      if (sound && typeof sound.play === 'function') {
-        sound.currentTime = 0;
-        const playPromise = sound.play();
-        if (playPromise && typeof playPromise.catch === 'function') {
-          playPromise.catch(() => {});
-        }
-      }
+      playSimulationAlertAudio(sound, message);
     }
 
     function closePopup(action = 'close') {
@@ -1141,8 +1158,6 @@
     })();
 
     (function initSimulationTabsAlert() {
-      const message =
-        "The Simulation section contains two tabs. The Demo tab provides a guided walkthrough on how to run the simulation, while the Simulation tab allows you to perform the experiment independently.\n\nClick on the Demo tab to view the demo.";
       function highlightDemoTab(durationMs = 12000) {
         const demoCard = document.getElementById('v1-card');
         if (!demoCard) return;
@@ -1159,7 +1174,7 @@
       window.addEventListener(
         'load',
         () => {
-          showPopup(message, 'Instruction');
+          showPopup(SIMULATION_TABS_ALERT_MESSAGE, 'Instruction');
           highlightDemoTab();
         },
         { once: true }
@@ -1167,7 +1182,6 @@
     })();
 
     (function initSimulationLinkReminder() {
-      const reminderMessage = "I hope you’ve completed the demo.";
       const links = document.querySelectorAll('a[href*="simulation/static/index.html"]');
       if (!links.length) return;
 
@@ -1176,7 +1190,7 @@
           const url = link.getAttribute('href') || link.href;
           if (!url) return;
           event.preventDefault();
-        showPopup(reminderMessage, 'Reminder', {
+        showPopup(SIMULATION_DEMO_REMINDER_ALERT_MESSAGE, 'Reminder', {
           mode: 'confirm',
           center: true,
           onYes: () => {
@@ -1194,7 +1208,6 @@
     const videoModal = document.getElementById('video-modal');
     const videoPlayer = document.getElementById('demo-video-player');
     const videoCloseBtn = document.getElementById('video-modal-close');
-    const demoIncompleteMessage = "To proceed further, please complete the demo first.";
 
     function isDemoVideoComplete() {
       if (!videoPlayer) return false;
@@ -1226,7 +1239,7 @@
 
       if (!completed) {
         window.setTimeout(() => {
-          showPopup(demoIncompleteMessage, 'Instruction', { center: true });
+          showPopup(SIMULATION_DEMO_REQUIRED_ALERT_MESSAGE, 'Instruction', { center: true });
         }, 50);
       }
     }

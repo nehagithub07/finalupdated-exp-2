@@ -171,6 +171,28 @@ function setBodyModalState(isOpen) {
   body.classList.remove("is-modal-open");
 }
 
+const COMPONENTS_EXIT_ALERT_MESSAGE =
+  "Now that you are familiar with all the components used in this experiment, you may now start the simulation \n\nAn AI guide is available to assist you at every step.";
+const COMPONENTS_EXIT_ALERT_AUDIO_SRC = "../audio/aftercomponentwindow.wav";
+const AUTO_CONNECT_COMPLETED_ALERT_MESSAGE =
+  "Autoconnect completed. Click on the check button to verify the connections.";
+const AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC = "#";
+
+function normalizePopupMessage(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function resolvePopupAudioSrc(message) {
+  const normalized = normalizePopupMessage(message);
+  if (normalized === normalizePopupMessage(COMPONENTS_EXIT_ALERT_MESSAGE)) {
+    return COMPONENTS_EXIT_ALERT_AUDIO_SRC;
+  }
+  if (normalized === normalizePopupMessage(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE)) {
+    return AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC;
+  }
+  return "";
+}
+
 function showPopup(message, title = "Alert") {
   if (!message) return;
   const modal = document.getElementById("warningModal");
@@ -184,7 +206,9 @@ function showPopup(message, title = "Alert") {
   const sound = document.getElementById("alertSound");
 
   if (ttl) ttl.textContent = title;
-  if (msg) msg.textContent = message;
+  if (msg) {
+    msg.textContent = message;
+  }
 
   if (box) {
     box.classList.remove("closing");
@@ -194,6 +218,15 @@ function showPopup(message, title = "Alert") {
   setBodyModalState(true);
 
   if (sound && typeof sound.play === "function") {
+    const audioSrc = resolvePopupAudioSrc(message);
+    if (!audioSrc) {
+      if (typeof sound.pause === "function") sound.pause();
+      sound.removeAttribute("src");
+      return;
+    }
+    if (sound.getAttribute("src") !== audioSrc) {
+      sound.setAttribute("src", audioSrc);
+    }
     sound.currentTime = 0;
     const playPromise = sound.play();
     if (playPromise && typeof playPromise.catch === "function") {
@@ -894,7 +927,7 @@ function setupJsPlumb() {
       window.dispatchEvent(new CustomEvent(MCB_TURNED_ON_EVENT));
       if (!silent) {
         showPopup(
-          "MCB is turned on. Now move the starter handle from left to right.",
+          "The MCB has been turned ON. Now move the starter handle from left to right.",
           "MCB ON"
         );
       }
@@ -1180,8 +1213,9 @@ function setupJsPlumb() {
         suppressAllAutoVoices = false;
         suppressGuideDuringAutoConnect = false;
         isAutoConnecting = false;
+        showPopup(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE, "Instruction");
         if (guideWasActive && window.labSpeech && typeof window.labSpeech.speak === "function") {
-          window.labSpeech.speak("Autoconnect completed. Click on the check button to verify the connections.");
+          window.labSpeech.speak(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE);
         }
       }, 0);
     });
@@ -2193,8 +2227,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
       <li>DC Shunt Generator: 3 kW, 220 V DC, 1500 RPM</li>
       <li>Load Type: Resistive Lamp Load</li>
       <li>Bulbs: 10 × 200 W each</li>
-      <li>DC Voltmeter: 0-240 V</li>
-      <li>DC Ammeter: 0-20 A</li>
+      <li>DC Voltmeter: 0-420 V</li>
+      <li>DC Ammeter: 0-30 A</li>
       <li>Connecting Leads</li>
     </ul>
  
@@ -3216,8 +3250,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
   let autoPlayPending = !hasAutoPlayedAudio();
   let autoPlayRequested = false;
   let autoPlayRetryArmed = false;
-  const COMPONENTS_EXIT_MESSAGE =
-    "Now that you are familiar with all the components used in this experiment, you may now start the simulation \n\nAn AI guide is available to assist you at every step.";
+  const COMPONENTS_EXIT_MESSAGE = COMPONENTS_EXIT_ALERT_MESSAGE;
 
   function showComponentsExitAlert() {
     if (hasShownComponentsAlert()) return;
