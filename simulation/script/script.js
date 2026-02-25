@@ -82,47 +82,374 @@ function pickPreferredVoice() {
 
 window.labSpeech = window.labSpeech || {};
 window.labSpeech.enabled = true;
-window.labSpeech.speak = function speak(text, options = {}) {
-  if (!window.labSpeech.enabled) return Promise.resolve();
-  if (
-    typeof window === "undefined" ||
-    !("speechSynthesis" in window) ||
-    typeof window.SpeechSynthesisUtterance !== "function"
-  ) {
-    return Promise.resolve();
+// Set to false to avoid any legacy/browser TTS voice while you replace clips.
+const LAB_ENABLE_TTS_FALLBACK = false;
+const labSpeechState = {
+  queue: [],
+  currentItem: null,
+  currentAudio: null,
+  currentUtterance: null,
+  voicePack: null,
+  autoplayBlocked: false,
+  retryArmed: false,
+  retryHandler: null,
+  pendingRetry: null
+};
+
+function supportsTtsEngine() {
+  return (
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    typeof window.SpeechSynthesisUtterance === "function"
+  );
+}
+
+function canUseTtsFallback() {
+  return LAB_ENABLE_TTS_FALLBACK === true;
+}
+
+function normalizeSpeechPayload(input) {
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    return {
+      key: typeof input.key === "string" ? input.key.trim() : "",
+      text: input.text == null ? "" : String(input.text)
+    };
   }
-  if (!text) return Promise.resolve();
+  if (input == null) return { key: "", text: "" };
+  return { key: "", text: String(input) };
+}
+
+function resolveVoicePackSrc(key) {
+  if (!key || !labSpeechState.voicePack) return "";
+  const src = labSpeechState.voicePack[key];
+  if (typeof src !== "string") return "";
+  const normalized = src.trim();
+  if (!normalized || normalized === "#") return "";
+  return normalized;
+}
+
+function normalizeStaticAudioPath(ref) {
+  const value = String(ref || "").trim();
+  if (!value) return value;
+  if (value.startsWith("./audio/")) {
+    return `../audio/${value.slice("./audio/".length)}`;
+  }
+  if (value.startsWith("audio/")) {
+    return `../${value}`;
+  }
+  return value;
+}
+
+function runSpeechOnEnd(item, invokeOnEnd = true) {
+  if (!item) return;
+  if (invokeOnEnd && typeof item.options?.onend === "function") {
+    try {
+      item.options.onend();
+    } catch (error) {
+      console.warn("labSpeech onend callback failed:", error);
+    }
+  }
+  if (typeof item.resolve === "function") {
+    item.resolve();
+  }
+}
+
+function disarmSpeechRetry() {
+  if (!labSpeechState.retryArmed || !labSpeechState.retryHandler) return;
+  window.removeEventListener("pointerdown", labSpeechState.retryHandler, true);
+  window.removeEventListener("keydown", labSpeechState.retryHandler, true);
+  labSpeechState.retryArmed = false;
+  labSpeechState.retryHandler = null;
+}
+
+function stopCurrentAudioPlayback() {
+  const audio = labSpeechState.currentAudio;
+  if (!audio) return;
+  labSpeechState.currentAudio = null;
+  audio.onended = null;
+  audio.onerror = null;
+  if (typeof audio.pause === "function") audio.pause();
+  try {
+    audio.currentTime = 0;
+  } catch (error) {
+    console.debug("labSpeech audio reset skipped:", error);
+  }
+}
+
+function stopCurrentTtsPlayback() {
+  labSpeechState.currentUtterance = null;
+  if (supportsTtsEngine()) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function clearSpeechQueue(invokeOnEnd = false) {
+  if (!labSpeechState.queue.length) return;
+  const pending = labSpeechState.queue.splice(0, labSpeechState.queue.length);
+  pending.forEach((item) => runSpeechOnEnd(item, invokeOnEnd));
+}
+
+function stopSpeechEngine({
+  clearQueue = true,
+  resolveCurrent = true,
+  invokeCurrentOnEnd = false,
+  clearRetry = true
+} = {}) {
+  stopCurrentAudioPlayback();
+  stopCurrentTtsPlayback();
+
+  if (clearRetry) {
+    labSpeechState.autoplayBlocked = false;
+    labSpeechState.pendingRetry = null;
+    disarmSpeechRetry();
+  }
+
+  const current = labSpeechState.currentItem;
+  labSpeechState.currentItem = null;
+  if (resolveCurrent && current) {
+    runSpeechOnEnd(current, invokeCurrentOnEnd);
+  }
+
+  if (clearQueue) {
+    clearSpeechQueue(false);
+  }
+}
+
+function finishCurrentSpeech(invokeOnEnd = true) {
+  const current = labSpeechState.currentItem;
+  labSpeechState.currentItem = null;
+  runSpeechOnEnd(current, invokeOnEnd);
+  flushSpeechQueue();
+}
+
+function isAutoplayBlockedError(error) {
+  const name = String(error?.name || "");
+  return name === "NotAllowedError";
+}
+
+function armAutoplayRetry(item, src) {
+  labSpeechState.autoplayBlocked = true;
+  labSpeechState.pendingRetry = { item, src };
+  if (labSpeechState.retryArmed) return;
+
+  labSpeechState.retryHandler = () => {
+    const pending = labSpeechState.pendingRetry;
+    labSpeechState.pendingRetry = null;
+    labSpeechState.autoplayBlocked = false;
+    disarmSpeechRetry();
+    if (!pending) return;
+    if (labSpeechState.currentItem !== pending.item) return;
+    playRecordedSpeech(pending.item, pending.src, { fromRetry: true });
+  };
+
+  labSpeechState.retryArmed = true;
+  window.addEventListener("pointerdown", labSpeechState.retryHandler, {
+    once: true,
+    capture: true
+  });
+  window.addEventListener("keydown", labSpeechState.retryHandler, {
+    once: true,
+    capture: true
+  });
+}
+
+function playTtsSpeech(item) {
+  if (!item || labSpeechState.currentItem !== item) return;
+  if (!canUseTtsFallback()) {
+    finishCurrentSpeech(true);
+    return;
+  }
+  const text = item.payload?.text;
+  if (!text || !supportsTtsEngine()) {
+    finishCurrentSpeech(true);
+    return;
+  }
+
+  stopCurrentAudioPlayback();
+
+  const opts = item.options || {};
+  const utterance = new SpeechSynthesisUtterance(String(text));
+  const voice = pickPreferredVoice();
+  if (voice) utterance.voice = voice;
+
+  utterance.lang = (voice && voice.lang) || "en-US";
+  utterance.rate = Number.isFinite(opts.rate) ? opts.rate : 0.85;
+  utterance.pitch = Number.isFinite(opts.pitch) ? opts.pitch : 0.9;
+  utterance.volume = Number.isFinite(opts.volume) ? opts.volume : 1;
+
+  labSpeechState.currentUtterance = utterance;
+  const settle = () => {
+    if (labSpeechState.currentUtterance === utterance) {
+      labSpeechState.currentUtterance = null;
+    }
+    if (labSpeechState.currentItem !== item) return;
+    finishCurrentSpeech(true);
+  };
+
+  utterance.onend = settle;
+  utterance.onerror = settle;
+
+  try {
+    window.speechSynthesis.speak(utterance);
+  } catch (error) {
+    console.warn("labSpeech TTS speak failed:", error);
+    settle();
+  }
+}
+
+function playRecordedSpeech(item, src, { fromRetry = false } = {}) {
+  if (!item || labSpeechState.currentItem !== item) return;
+  if (!src) {
+    if (canUseTtsFallback()) {
+      playTtsSpeech(item);
+    } else {
+      finishCurrentSpeech(true);
+    }
+    return;
+  }
+
+  stopCurrentAudioPlayback();
+  stopCurrentTtsPlayback();
+
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  labSpeechState.currentAudio = audio;
+
+  let settled = false;
+  const teardown = () => {
+    if (settled) return;
+    settled = true;
+    if (labSpeechState.currentAudio === audio) {
+      labSpeechState.currentAudio = null;
+    }
+    audio.onended = null;
+    audio.onerror = null;
+    if (typeof audio.pause === "function") audio.pause();
+    try {
+      audio.currentTime = 0;
+    } catch (error) {
+      console.debug("labSpeech audio cleanup skipped:", error);
+    }
+  };
+
+  const finish = () => {
+    if (labSpeechState.currentItem !== item) {
+      teardown();
+      return;
+    }
+    teardown();
+    finishCurrentSpeech(true);
+  };
+
+  const fallbackToTts = () => {
+    if (labSpeechState.currentItem !== item) {
+      teardown();
+      return;
+    }
+    const key = String(item?.payload?.key || "");
+    console.warn(`labSpeech: failed to play recorded clip${key ? ` for key "${key}"` : ""}: ${src}`);
+    teardown();
+    if (canUseTtsFallback()) {
+      playTtsSpeech(item);
+    } else {
+      finishCurrentSpeech(true);
+    }
+  };
+
+  audio.onended = finish;
+  audio.onerror = fallbackToTts;
+
+  const playPromise = audio.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch((error) => {
+      if (settled) return;
+      if (isAutoplayBlockedError(error) && !fromRetry) {
+        teardown();
+        armAutoplayRetry(item, src);
+        return;
+      }
+      fallbackToTts();
+    });
+  }
+}
+
+function flushSpeechQueue() {
+  if (labSpeechState.currentItem || !labSpeechState.queue.length) return;
+  const item = labSpeechState.queue.shift();
+  labSpeechState.currentItem = item;
+  const clipSrc = resolveVoicePackSrc(item.payload?.key);
+  if (clipSrc) {
+    playRecordedSpeech(item, clipSrc);
+    return;
+  }
+  const missingKey = String(item?.payload?.key || "");
+  if (missingKey) {
+    console.warn(`labSpeech: no audio mapped for key "${missingKey}".`);
+  }
+  if (canUseTtsFallback()) {
+    playTtsSpeech(item);
+  } else {
+    finishCurrentSpeech(true);
+  }
+}
+
+window.labSpeech.useRecordedVoice = function useRecordedVoice(voicePack, options = {}) {
+  if (!voicePack || typeof voicePack !== "object") {
+    labSpeechState.voicePack = null;
+    return;
+  }
+  labSpeechState.voicePack = { ...voicePack };
+  const shouldPreload = options && options.preload === true;
+  if (!shouldPreload) return;
+
+  Object.keys(labSpeechState.voicePack).forEach((key) => {
+    const src = resolveVoicePackSrc(key);
+    if (!src) return;
+    try {
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      if (typeof audio.load === "function") audio.load();
+    } catch (error) {
+      console.warn("labSpeech preload failed:", error);
+    }
+  });
+};
+
+window.labSpeech.speak = function speak(input, options = {}) {
+  if (!window.labSpeech.enabled) return Promise.resolve();
+
+  const payload = normalizeSpeechPayload(input);
+  if (!payload.key && !payload.text) return Promise.resolve();
 
   const opts = options || {};
-  const shouldInterrupt = opts.interrupt !== false;
-
-  if (shouldInterrupt) window.speechSynthesis.cancel();
-
   return new Promise((resolve) => {
-    const utterance = new SpeechSynthesisUtterance(String(text));
-    const voice = pickPreferredVoice();
-    if (voice) utterance.voice = voice;
-
-    utterance.lang = (voice && voice.lang) || "en-US";
-    utterance.rate = Number.isFinite(opts.rate) ? opts.rate : 0.85;
-    utterance.pitch = Number.isFinite(opts.pitch) ? opts.pitch : 0.9;
-    utterance.volume = Number.isFinite(opts.volume) ? opts.volume : 1;
-
-    utterance.onend = () => {
-      if (typeof opts.onend === "function") opts.onend();
-      resolve();
+    const item = {
+      payload,
+      options: opts,
+      resolve
     };
-    utterance.onerror = () => {
-      if (typeof opts.onend === "function") opts.onend();
-      resolve();
-    };
-    window.speechSynthesis.speak(utterance);
+
+    const shouldInterrupt = opts.interrupt !== false;
+    if (shouldInterrupt) {
+      stopSpeechEngine({
+        clearQueue: true,
+        resolveCurrent: true,
+        invokeCurrentOnEnd: false,
+        clearRetry: true
+      });
+    }
+
+    labSpeechState.queue.push(item);
+    flushSpeechQueue();
   });
 };
 window.labSpeech.stop = function stop() {
-  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
-  }
+  stopSpeechEngine({
+    clearQueue: true,
+    resolveCurrent: true,
+    invokeCurrentOnEnd: false,
+    clearRetry: true
+  });
 };
 window.labSpeech.cancel =
   window.labSpeech.cancel ||
@@ -173,10 +500,189 @@ function setBodyModalState(isOpen) {
 
 const COMPONENTS_EXIT_ALERT_MESSAGE =
   "Now that you are familiar with all the components used in this experiment, you may now start the simulation \n\nAn AI guide is available to assist you at every step.";
-const COMPONENTS_EXIT_ALERT_AUDIO_SRC = "../audio/aftercomponentwindow.wav";
+const COMPONENTS_EXIT_ALERT_AUDIO_SRC = "./audio/components_window_intro.wav";
 const AUTO_CONNECT_COMPLETED_ALERT_MESSAGE =
   "Autoconnect completed. Click on the check button to verify the connections.";
-const AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC = "#";
+const AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC = "./audio/autoconnect_completed.wav";
+
+// Editable voice catalog:
+// - `key`: identifier used by buildVoicePayload / step speaking
+// - `text`: TTS fallback text
+// - `audio`: audio file name or path; keep "#" as temporary placeholder
+const LAB_VOICE_CATALOG = [
+  {
+    key: "components_window_intro",
+    text:
+      "Now that you are familiar with all the components used in this experiment, you may now start the simulation. An AI guide is available to assist you at every step.",
+    audio: "./audio/components_window_intro.wav"
+  },
+  { key: "autoconnect_completed", text: AUTO_CONNECT_COMPLETED_ALERT_MESSAGE, audio: "./audio/autoconnect_completed.wav" },
+  {
+    key: "mcb_turned_on",
+    text: "The MCB has been turned ON. Now move the starter handle from left to right.",
+    audio: "./audio/mcb_turned_on.wav"
+  },
+  {
+    key: "mcb_turned_off_between",
+    text: "You turned off the MCB. Turn it back on to continue the simulation.",
+    audio: "./audio/mcb_turned_off_between.wav"
+  },
+  { key: "guide_intro", text: "Let's connect the components.", audio: "./audio/guide_intro.wav" },
+  {
+    key: "guide_checked",
+    text: "Connections are already verified. Turn on the MCB to continue.",
+    audio: "./audio/guide_checked.wav"
+  },
+  {
+    key: "guide_mcb_on",
+    text: "The MCB is already on. Move the starter handle from left to right.",
+    audio: "./audio/guide_mcb_on.wav"
+  },
+  {
+    key: "guide_starter_on",
+    text: "The starter is already on. Select the number of bulbs from the lamp load.",
+    audio: "./audio/guide_starter_on.wav"
+  },
+  {
+    key: "guide_all_complete",
+    text: "All connections are complete. Click the Check button to verify the connections.",
+    audio: "./audio/guide_all_complete.wav"
+  },
+  {
+    key: "guide_turn_off_mcb",
+    text: "You turned off the MCB. Turn it back on to continue the simulation.",
+    audio: "./audio/mcb_turned_off_between.wav"
+  },
+  {
+    key: "before_connection_check",
+    text: "Please make all the connections first.",
+    audio: "./adudio/before_connection_check.wav"
+  },
+  {
+    key: "before_connection_mcb_alert",
+    text: "Make and check the connections before turning on the MCB.",
+    audio: "./audio/before_connection_mcb_alert.wav"
+  },
+  {
+    key: "connections_correct_turn_on_mcb",
+    text: "Connections are correct, click on the MCB to turn it on.",
+    audio: "./audio/connections_correct_turn_on_mcb.wav"
+  },
+  {
+    key: "turn_off_mcb_before_removing_conn",
+    text: "Turn off the MCB before removing the connections.",
+    audio: "./audio/turn_off_mcb_before_removing_conn.wav"
+  },
+  {
+    key: "please_check_connections_first",
+    text: "Please check the connections first.",
+    audio: "./audio/please_check_connections_first.wav"
+  },
+  { key: "please_turn_on_mcb", text: "Please turn on the MCB before continuing.", audio: "./audio/please_turn_on_mcb.wav" },
+  {
+    key: "please_move_starter",
+    text: "Please move the starter handle from left to right.",
+    audio: "./audio/please_move_starter.wav"
+  },
+  {
+    key: "before_add_table_select_bulbs",
+    text: "Select the number of bulbs first.",
+    audio: "./audio/before_add_table_select_bulbs.wav"
+  },
+  {
+    key: "first_reading_selected",
+    text: "Click on the add to table button to add the reading to the observation table.",
+    audio: "./audio/first_reading_selected.wav"
+  },
+  {
+    key: "duplicate_reading",
+    text: "This reading is already added to the table. Please choose a different load.",
+    audio: "#"
+  },
+  {
+    key: "after_first_reading_added",
+    text: "Once again, change the bulb selection.",
+    audio: "#"
+  },
+  { key: "second_reading", text: "Click add to table button again.", audio: "#" },
+  {
+    key: "graph_or_more_readings",
+    text: "Now you can plot the graph by clicking on the graph button or add more readings to the table.",
+    audio: "#"
+  },
+  {
+    key: "after_ten_readings_done",
+    text: "All ten readings have been recorded. Now plot the graph and then click on the report button to generate your report.",
+    audio: "#"
+  },
+  {
+    key: "max_readings",
+    text: "You can add a maximum of 10 readings to the table. Now, click the Graph button.",
+    audio: "#"
+  },
+  {
+    key: "graph_complete",
+    text: "The graph of terminal voltage versus load current has been plotted. Your experiment is now complete. You may view the report by clicking on the report button, then use print to print the page or reset to start again.",
+    audio: "#"
+  },
+  {
+    key: "report_ready",
+    text: "Your report has been generated successfully. Click OK to view your report.",
+    audio: "#"
+  },
+  { key: "reset", text: "The simulation has been reset. You can start again.", audio: "#" },
+  { key: "print", text: "Opening the print dialog.", audio: "#" },
+  { key: "reading_added", text: "Reading added to the observation table.", audio: "#" },
+
+  // Step prompts (normalized key uses sorted point ids from connectionKey).
+  { key: "step_pointC-pointR", text: "Connect point R to point C.", audio: "#" },
+  { key: "step_pointE-pointR", text: "Connect point R to point E.", audio: "#" },
+  { key: "step_pointB-pointG", text: "Connect point B to point G.", audio: "#" },
+  { key: "step_pointA2-pointB", text: "Connect point B to point A 2.", audio: "#" },
+  { key: "step_pointA2-pointZ2", text: "Connect point A 2 to point Z 2.", audio: "#" },
+  { key: "step_pointD-pointL", text: "Connect point L to point D.", audio: "#" },
+  { key: "step_pointA-pointA1", text: "Connect point A to point A 1.", audio: "#" },
+  { key: "step_pointF-pointZ1", text: "Connect point F to point Z 1.", audio: "#" },
+  { key: "step_pointA4-pointL2", text: "Connect point L 2 to point A 4.", audio: "#" },
+  { key: "step_pointA4-pointZ4", text: "Connect point A 4 to point Z 4.", audio: "#" },
+  { key: "step_pointK-pointZ4", text: "Connect point Z 4 to point K.", audio: "#" },
+  { key: "step_pointI-pointJ", text: "Connect point I to point J.", audio: "#" },
+  { key: "step_pointJ-pointL1", text: "Connect point J to point L 1.", audio: "#" },
+  { key: "step_pointA3-pointH", text: "Connect point H to point A 3.", audio: "#" },
+  { key: "step_pointH-pointZ3", text: "Connect point H to point Z 3.", audio: "#" }
+];
+
+const LAB_VOICE_TEXTS = Object.create(null);
+const LAB_VOICE_AUDIO_FILES = Object.create(null);
+LAB_VOICE_CATALOG.forEach((entry) => {
+  if (!entry || typeof entry !== "object") return;
+  const key = String(entry.key || "").trim();
+  if (!key) return;
+  const text = entry.text == null ? "" : String(entry.text).trim();
+  const audio = entry.audio == null ? "#" : String(entry.audio).trim() || "#";
+  LAB_VOICE_TEXTS[key] = text;
+  LAB_VOICE_AUDIO_FILES[key] = audio;
+});
+
+function getSpeechText(input) {
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    return input.text == null ? "" : String(input.text).trim();
+  }
+  return input == null ? "" : String(input).trim();
+}
+
+function buildVoicePayload(key, fallbackText = "") {
+  const mappedText = typeof LAB_VOICE_TEXTS[key] === "string" ? LAB_VOICE_TEXTS[key] : "";
+  const text = getSpeechText(fallbackText) || mappedText;
+  return { key: String(key || ""), text };
+}
+
+function getVoiceAudioRef(key) {
+  const mappedAudio = LAB_VOICE_AUDIO_FILES[key];
+  if (typeof mappedAudio !== "string") return "#";
+  const normalized = mappedAudio.trim();
+  return normalized || "#";
+}
 
 function normalizePopupMessage(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
@@ -219,7 +725,7 @@ function showPopup(message, title = "Alert") {
 
   if (sound && typeof sound.play === "function") {
     const audioSrc = resolvePopupAudioSrc(message);
-    if (!audioSrc) {
+    if (!audioSrc || audioSrc === "#") {
       if (typeof sound.pause === "function") sound.pause();
       sound.removeAttribute("src");
       return;
@@ -756,6 +1262,40 @@ function setupJsPlumb() {
     requiredConnectionNumbers.set(connectionKey(a, b), index + 1);
   });
 
+  // Replace "#" with your real recorded-voice folder path (example: "../audio/exp2").
+  const RECORDED_VOICE_BASE_SRC = "#";
+
+  function buildRecordedVoiceSrc(audioRef) {
+    const ref = normalizeStaticAudioPath(String(audioRef || "").trim());
+    if (!ref || ref === "#") return "#";
+
+    // Allow direct path/URL per item without base path.
+    if (/^(https?:)?\/\//i.test(ref) || ref.startsWith("/") || ref.startsWith("./") || ref.startsWith("../")) {
+      return ref;
+    }
+
+    if (!RECORDED_VOICE_BASE_SRC || RECORDED_VOICE_BASE_SRC === "#") return "#";
+    const base = RECORDED_VOICE_BASE_SRC.replace(/\/+$/, "");
+    return `${base}/${ref}`;
+  }
+
+  const voicePack = {};
+  Object.keys(LAB_VOICE_TEXTS).forEach((key) => {
+    voicePack[key] = buildRecordedVoiceSrc(getVoiceAudioRef(key));
+  });
+
+  requiredPairs.forEach((pair) => {
+    const [from, to] = String(pair).split("-");
+    if (!from || !to) return;
+    const stepKey = `step_${connectionKey(from, to)}`;
+    if (voicePack[stepKey]) return;
+    voicePack[stepKey] = buildRecordedVoiceSrc(`${stepKey}.mp3`);
+  });
+
+  if (window.labSpeech && typeof window.labSpeech.useRecordedVoice === "function") {
+    window.labSpeech.useRecordedVoice(voicePack);
+  }
+
   function formatPointLabel(id) {
     return String(id || "").replace(/^point/i, "").toUpperCase();
   }
@@ -927,7 +1467,7 @@ function setupJsPlumb() {
       window.dispatchEvent(new CustomEvent(MCB_TURNED_ON_EVENT));
       if (!silent) {
         showPopup(
-          "The MCB has been turned ON. Now move the starter handle from left to right.",
+          getSpeechText(buildVoicePayload("mcb_turned_on")),
           "MCB ON"
         );
       }
@@ -942,7 +1482,7 @@ function setupJsPlumb() {
       updateControlLocks();
       window.dispatchEvent(new CustomEvent(MCB_TURNED_OFF_EVENT));
       if (!silent) {
-        showPopup("You turned off the MCB. Turn it back on to continue the experiment.");
+        showPopup(getSpeechText(buildVoicePayload("mcb_turned_off_between")));
       }
       return;
     }
@@ -957,7 +1497,7 @@ function setupJsPlumb() {
   if (mcbImg) {
     const handleMcbClick = function () {
       if (!connectionsVerified) {
-        showPopup("Make and check the connections before turning on the MCB.");
+        showPopup(getSpeechText(buildVoicePayload("before_connection_mcb_alert")));
         return;
       }
       const nextState = !mcbOn;
@@ -976,7 +1516,7 @@ function setupJsPlumb() {
     btn.style.cursor = "pointer"; // Ensure pointer cursor
     btn.addEventListener("click", function () {
       if (mcbOn) {
-        speakOrAlertLocal("Turn off the MCB before removing wires.");
+        speakOrAlertLocal(buildVoicePayload("turn_off_mcb_before_removing_conn"));
         return;
       }
       const className = this.className;
@@ -999,7 +1539,7 @@ function setupJsPlumb() {
     p.style.cursor = "pointer";
     p.addEventListener("click", function () {
       if (mcbOn) {
-        speakOrAlertLocal("Turn off the MCB before removing wires.");
+        speakOrAlertLocal(buildVoicePayload("turn_off_mcb_before_removing_conn"));
         return;
       }
       const id = this.id;
@@ -1018,22 +1558,27 @@ function setupJsPlumb() {
     );
   }
 
-  function speakLocal(text, options = {}) {
-    if (!text) return;
+  function speakLocal(input, options = {}) {
+    const payload = input;
+    const text = getSpeechText(payload);
+    const hasKeyedPayload =
+      payload && typeof payload === "object" && !Array.isArray(payload) && !!payload.key;
+    if (!text && !hasKeyedPayload) return;
     const opts = options || {};
     if (window.labSpeech && typeof window.labSpeech.say === "function") {
-      window.labSpeech.say(text, { interruptFirst: opts.interruptFirst !== false });
+      window.labSpeech.say(payload, { interruptFirst: opts.interruptFirst !== false });
       return;
     }
     if (window.labSpeech && typeof window.labSpeech.speak === "function") {
-      window.labSpeech.speak(text, { interrupt: opts.interruptFirst !== false });
+      window.labSpeech.speak(payload, { interrupt: opts.interruptFirst !== false });
     }
   }
 
-  function speakOrAlertLocal(text) {
+  function speakOrAlertLocal(input) {
+    const text = getSpeechText(input);
     if (!text) return;
     if (guideSpeechActive()) {
-      speakLocal(text, { interruptFirst: true });
+      speakLocal(input, { interruptFirst: true });
     } else {
       showPopup(text);
     }
@@ -1070,9 +1615,7 @@ function setupJsPlumb() {
         connectionsVerified = true;
         starterMoved = false;
         window.dispatchEvent(new CustomEvent(CONNECTION_VERIFIED_EVENT));
-        speakOrAlertLocal(
-          "Connections are correct, click on the MCB to turn it on."
-        );
+        speakOrAlertLocal(buildVoicePayload("connections_correct_turn_on_mcb"));
         return;
       }
 
@@ -1104,7 +1647,7 @@ function setupJsPlumb() {
       const hasMissingDetails = !isInitialWiringState && missingConnectionLabels.length > 0;
       let message = hasWrongDetails || hasMissingDetails
         ? ""
-        : "Please make all the connections first.";
+        : getSpeechText(buildVoicePayload("before_connection_check"));
 
       if (wrongConnectionLabels.length) {
         const preview = wrongConnectionLabels.slice(0, 3).join(", ");
@@ -1121,7 +1664,7 @@ function setupJsPlumb() {
         message += ` Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
 
-      let speechMessage = "Please make all the connections first.";
+      let speechMessage = getSpeechText(buildVoicePayload("before_connection_check"));
       if (firstIllegal) {
         speechMessage += ` Remove wrong connection ${formatConnectionSpeech(firstIllegal)}.`;
       }
@@ -1215,7 +1758,7 @@ function setupJsPlumb() {
         isAutoConnecting = false;
         showPopup(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE, "Instruction");
         if (guideWasActive && window.labSpeech && typeof window.labSpeech.speak === "function") {
-          window.labSpeech.speak(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE);
+          window.labSpeech.speak(buildVoicePayload("autoconnect_completed"));
         }
       }, 0);
     });
@@ -1380,7 +1923,8 @@ function setupJsPlumb() {
       const text = buildStepText(step, currentStep);
       if (!text) return;
       highlightStep(step);
-      window.labSpeech.speak(text, { interrupt: !queue });
+      const key = `step_${connectionKey(step.from, step.to)}`;
+      window.labSpeech.speak({ key, text }, { interrupt: !queue });
     }
 
     function getFirstIncompleteStepIndex() {
@@ -1409,19 +1953,20 @@ function setupJsPlumb() {
       updateControlLocks();
     }
 
-    function speakGuide(text, options = {}) {
-      const speechSupported =
-        typeof window !== "undefined" &&
-        "speechSynthesis" in window &&
-        typeof window.SpeechSynthesisUtterance === "function";
+    function speakGuide(input, options = {}) {
       clearSpeakHighlights();
-      if (!speechSupported) {
-        stopGuide({ resetUI: true });
-        return;
-      }
       const interrupt = options.interrupt !== false;
       lastSpokenStep = -1;
-      window.labSpeech.speak(text, { interrupt });
+
+      let payload = input;
+      if (input && typeof input === "object" && !Array.isArray(input)) {
+        const key = typeof input.key === "string" ? input.key.trim() : "";
+        const text = input.text == null ? "" : String(input.text);
+        payload = key ? { key, text } : text;
+      }
+      if (payload == null || payload === "") return;
+
+      window.labSpeech.speak(payload, { interrupt });
     }
 
     function getLabStage() {
@@ -1438,15 +1983,15 @@ function setupJsPlumb() {
       switch (stage) {
         case "checked":
           activateGuideUI();
-          speakGuide("Connections are already verified. Turn on the MCB to continue.");
+          speakGuide(buildVoicePayload("guide_checked"));
           return;
         case "dc_on":
           activateGuideUI();
-          speakGuide("The MCB is already on. Move the starter handle from left to right.");
+          speakGuide(buildVoicePayload("guide_mcb_on"));
           return;
         case "starter_on":
           activateGuideUI();
-          speakGuide("The starter is already on. Select the number of bulbs from the lamp load.");
+          speakGuide(buildVoicePayload("guide_starter_on"));
           return;
         default:
           break;
@@ -1461,9 +2006,7 @@ function setupJsPlumb() {
       const firstIncomplete = getFirstIncompleteStepIndex();
       if (firstIncomplete >= steps.length) {
         activateGuideUI();
-        speakGuide(
-          "All connections are complete. Click the Check button to verify the connections."
-        );
+        speakGuide(buildVoicePayload("guide_all_complete"));
         return;
       }
 
@@ -1471,24 +2014,16 @@ function setupJsPlumb() {
       currentStep = firstIncomplete;
 
       waitForVoices(() => {
-        if (!("speechSynthesis" in window)) {
-          speakCurrentStep({ force: true });
-          return;
-        }
-        const intro = new SpeechSynthesisUtterance("Let's connect the components.");
-        const voice = pickPreferredVoice();
-        if (voice) intro.voice = voice;
-        intro.lang = (voice && voice.lang) || "en-US";
-        intro.rate = 0.85;
-        intro.pitch = 0.9;
-        intro.volume = 1;
-
-        intro.onend = () => {
-          if (guideActive) speakCurrentStep({ force: true });
-        };
-
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(intro);
+        if (!guideActive) return;
+        window.labSpeech.speak(
+          buildVoicePayload("guide_intro"),
+          {
+            interrupt: true,
+            onend: () => {
+              if (guideActive) speakCurrentStep({ force: true });
+            }
+          }
+        );
       });
     }
 
@@ -1501,8 +2036,8 @@ function setupJsPlumb() {
       lastSpokenAt = 0;
       clearSpeakHighlights();
 
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
+      if (window.labSpeech && typeof window.labSpeech.stop === "function") {
+        window.labSpeech.stop();
       }
 
       if (resetUI) {
@@ -1557,7 +2092,10 @@ function setupJsPlumb() {
       currentStep = getFirstIncompleteStepIndex();
       if (currentStep >= steps.length) {
         speakGuide(
-          "All connections are complete. Click the Check button to verify the connection."
+          buildVoicePayload(
+            "guide_all_complete",
+            "All connections are complete. Click the Check button to verify the connection."
+          )
         );
         return;
       }
@@ -1576,22 +2114,34 @@ function setupJsPlumb() {
 
     window.addEventListener(CONNECTION_VERIFIED_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("Connections verified. Turn on the MCB to continue.");
+      speakGuide(
+        buildVoicePayload(
+          "guide_checked",
+          "Connections verified. Turn on the MCB to continue."
+        )
+      );
     });
 
     window.addEventListener(MCB_TURNED_ON_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("Now move the starter handle from left to right");
+      speakGuide(
+        buildVoicePayload(
+          "guide_mcb_on",
+          "Now move the starter handle from left to right"
+        )
+      );
     });
 
     window.addEventListener(STARTER_MOVED_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("Select the number of bulbs from the lamp load.");
+      speakGuide(
+        buildVoicePayload("guide_starter_on", "Select the number of bulbs from the lamp load.")
+      );
     });
 
     window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
       if (!guideActive) return;
-      speakGuide("You turned off the MCB. Turn it back on to continue the simulation.");
+      speakGuide(buildVoicePayload("guide_turn_off_mcb"));
     });
   })();
 
@@ -1793,16 +2343,21 @@ document.addEventListener("keydown", (e) => {
     );
   }
 
-  function speak(text) {
-    if (!text || !speechIsActive()) return;
+  function speak(input) {
+    const payload = input;
+    const text = getSpeechText(payload);
+    const hasKeyedPayload =
+      payload && typeof payload === "object" && !Array.isArray(payload) && !!payload.key;
+    if ((!text && !hasKeyedPayload) || !speechIsActive()) return;
     if (window.labSpeech && typeof window.labSpeech.say === "function") {
-      window.labSpeech.say(text, { interruptFirst: true });
+      window.labSpeech.say(payload, { interruptFirst: true });
     }
   }
 
-  function speakOrAlert(text) {
+  function speakOrAlert(input) {
+    const text = getSpeechText(input);
     if (!text) return;
-    if (speechIsActive()) speak(text);
+    if (speechIsActive()) speak(input);
     else showPopup(text);
   }
 
@@ -1814,7 +2369,7 @@ document.addEventListener("keydown", (e) => {
 
   function enforceReady(action) {
     if (!connectionsVerified) {
-      speakOrAlert("Please check the connections first.");
+      speakOrAlert(buildVoicePayload("please_check_connections_first"));
       if (action === "lampSelect" && lampSelect) {
         lampSelect.value = "";
         selectedIndex = -1;
@@ -1825,11 +2380,11 @@ document.addEventListener("keydown", (e) => {
       return false;
     }
     if (!mcbOn) {
-      speakOrAlert("Please turn on the MCB before continuing.");
+      speakOrAlert(buildVoicePayload("please_turn_on_mcb"));
       return false;
     }
     if (!starterMoved) {
-      speakOrAlert("Please move the starter handle from left to right.");
+      speakOrAlert(buildVoicePayload("please_move_starter"));
       return false;
     }
     return true;
@@ -1962,9 +2517,7 @@ document.addEventListener("keydown", (e) => {
           graphPlotAlertShown = true;
           showPopup("Graph plotted. You can now generate the report.", "Graph Ready");
         }
-        speak(
-          "The graph of terminal voltage versus load current has been plotted. Your experiment is now complete. You may view the report by clicking on the report button, then use print to print the page or reset to start again."
-        );
+        speak(buildVoicePayload("graph_complete"));
       })
       .catch(() => {
         graphPlotted = false;
@@ -2374,11 +2927,11 @@ tr:nth-child(even) { background-color: #f8fbff; }
       return;
     }
     showPopup(
-      "Your report has been generated successfully. Click OK to view your report",
+      getSpeechText(buildVoicePayload("report_ready")),
       "Report Ready"
     );
     if (speechIsActive()) {
-      speak("Your report has been generated successfully. Click OK to view your report");
+      speak(buildVoicePayload("report_ready"));
     }
     waitForWarningModalAcknowledgement().then(() => {
       generateReport();
@@ -2402,26 +2955,26 @@ tr:nth-child(even) { background-color: #f8fbff; }
   function handleAddReading() {
     if (!enforceReady("addReading")) return;
     if (selectedIndex < 0) {
-      speakOrAlert("Select the number of bulbs first.");
+      speakOrAlert(buildVoicePayload("before_add_table_select_bulbs"));
       return;
     }
     if (!readingArmed) {
-      speakOrAlert("This reading is already added to the table. Please choose a different load.");
+      speakOrAlert(buildVoicePayload("duplicate_reading"));
       return;
     }
     if (readingsRecorded.length >= 10) {
-      speakOrAlert("You can add a maximum of 10 readings to the table. Now, click the Graph button.");
+      speakOrAlert(buildVoicePayload("max_readings"));
       return;
     }
 
     const load = selectedIndex + 1;
     if (readingsRecorded.some((reading) => reading.load === load)) {
       showPopup(
-        "This reading is already added to the table. Please choose a different load.",
+        getSpeechText(buildVoicePayload("duplicate_reading")),
         "Duplicate Reading"
       );
       if (speechIsActive()) {
-        speak("This reading is already added to the table. Please choose a different load.");
+        speak(buildVoicePayload("duplicate_reading"));
       }
       readingArmed = false;
       return;
@@ -2439,6 +2992,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     if (!addReadingAlertShown) {
       addReadingAlertShown = true;
       showPopup("Reading added to the observation table.", "Observation");
+      speak(buildVoicePayload("reading_added"));
     }
     if (!allReadingsAlertShown && readingsRecorded.length === 10) {
       allReadingsAlertShown = true;
@@ -2446,9 +3000,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
         "All 10 readings have been recorded. Now, plot the graph and then click on the report button to generate your report.",
         "All Readings Added"
       );
-      speak(
-        "All ten readings have been recorded. Now plot the graph and then click on the report button to generate your report."
-      );
+      speak(buildVoicePayload("after_ten_readings_done"));
     }
     readingArmed = false;
     stepGuide.complete("reading");
@@ -2456,9 +3008,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     updateGraphControls();
 
     if (readingsRecorded.length < minGraphPoints) {
-      speak("Once again, change the bulb selection.");
+      speak(buildVoicePayload("after_first_reading_added"));
     } else if (readingsRecorded.length >= minGraphPoints && readingsRecorded.length < 10) {
-      speak("Now you can plot the graph by clicking on the graph button or add more readings to the table.");
+      speak(buildVoicePayload("graph_or_more_readings"));
     }
 
     if (!graphReadyAnnounced && readingsRecorded.length >= minGraphPoints) {
@@ -2496,9 +3048,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     updateNeedles(selectedIndex);
 
     if (readingsRecorded.length === 0) {
-      speak("Click on the add to table button to add the reading to the observation table.");
+      speak(buildVoicePayload("first_reading_selected"));
     } else {
-      speak("Click add to table button again.");
+      speak(buildVoicePayload("second_reading"));
     }
   }
 
@@ -2510,13 +3062,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
       window.labSpeech.stop();
     }
 
-    const speechSupported =
-      typeof window !== "undefined" &&
-      "speechSynthesis" in window &&
-      typeof window.SpeechSynthesisUtterance === "function";
-
-    if (wasGuiding && speechSupported && window.labSpeech && typeof window.labSpeech.speak === "function") {
-      window.labSpeech.speak("The simulation has been reset. You can start again.", {
+    if (wasGuiding && window.labSpeech && typeof window.labSpeech.speak === "function") {
+      window.labSpeech.speak(buildVoicePayload("reset"), {
         onend: () => {
           if (typeof window.stopGuideSpeech === "function") {
             window.stopGuideSpeech();
@@ -2586,7 +3133,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     updateRotorSpin();
     stepGuide.reset();
     updateGraphControls();
-    showPopup("Experiment has been reset. You can start again.", "Reset");
+    showPopup(getSpeechText(buildVoicePayload("reset")), "Reset");
   }
 
   if (lampSelect) {
@@ -2743,7 +3290,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
     }
 
     if (speechIsActive()) {
-      window.labSpeech.speak("Opening the print dialog.");
+      window.labSpeech.speak(buildVoicePayload("print"));
     }
 
     cleanupSimulationPrintContainer();
