@@ -9,12 +9,6 @@ const WIRE_CURVINESS = 50;
 
 const generatorRotor = document.querySelector(".generator-rotor");
 
-// const hasActiveProfile = Boolean(window.labTracking?.getFormProfile?.());
-// if (!hasActiveProfile) {
-//   window.alert("To perform the experiment, please fill the user input form first.");
-//   window.location.href = "../../progressreport.html";
-// }
-
 let suppressAllAutoVoices = true;
 let suppressGuideDuringAutoConnect = false;
 let isAutoConnecting = false;
@@ -567,6 +561,16 @@ const LAB_VOICE_CATALOG = [
     key: "connections_correct_turn_on_mcb",
     text: "Connections are correct, click on the MCB to turn it on.",
     audio: "./audio/connections_correct_turn_on_mcb.wav"
+  },
+  {
+    key: "wrong_connection",
+    text: "This connection is wrong.",
+    audio: "./audio/wrong_connection.wav"
+  },
+  {
+    key: "some_connection_wrong",
+    text: "Some connections are wrong.",
+    audio: "./audio/some_connection_wrong.wav"
   },
   {
     key: "turn_off_mcb_before_removing_conn",
@@ -1664,7 +1668,13 @@ function setupJsPlumb() {
         message += ` Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
 
-      let speechMessage = getSpeechText(buildVoicePayload("before_connection_check"));
+      let speechKey = "before_connection_check";
+      if (illegal.length > 1) {
+        speechKey = "some_connection_wrong";
+      } else if (illegal.length === 1) {
+        speechKey = "wrong_connection";
+      }
+      let speechMessage = getSpeechText(buildVoicePayload(speechKey));
       if (firstIllegal) {
         speechMessage += ` Remove wrong connection ${formatConnectionSpeech(firstIllegal)}.`;
       }
@@ -1673,7 +1683,7 @@ function setupJsPlumb() {
       }
 
       // Always speak guidance. Show popup for wrong or missing connections.
-      speakLocal(speechMessage, { interruptFirst: true });
+      speakLocal(buildVoicePayload(speechKey, speechMessage), { interruptFirst: true });
       if (illegal.length || missing.length) {
         showPopup(message);
       }
@@ -2083,7 +2093,10 @@ function setupJsPlumb() {
         const wrongA = formatPointSpeech(info.sourceId);
         const wrongB = formatPointSpeech(info.targetId);
         window.labSpeech.speak(
-          `That connection is wrong. You connected point ${wrongA} to point ${wrongB}.`
+          buildVoicePayload(
+            "wrong_connection",
+            `That connection is wrong. You connected point ${wrongA} to point ${wrongB}.`
+          )
         );
         speakCurrentStep({ force: true, queue: true });
         return;
