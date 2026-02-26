@@ -1445,16 +1445,16 @@ function setupJsPlumb() {
       findButtonByLabel("Add");
     const autoBtn = findButtonByLabel("Auto Connect");
     const disableAutoOnCheckedSpeech = connectionsVerified && guideSpeechActive();
+    const disableAutoAfterCheck = autoBtn?.dataset?.checkedLocked === "1";
     if (lampSelect) lampSelect.disabled = !ready;
     if (addBtn) addBtn.disabled = !ready;
     if (autoBtn) {
       if (disableAutoOnCheckedSpeech) {
         autoBtn.dataset.guideLocked = "1";
-        autoBtn.disabled = true;
-      } else if (autoBtn.dataset.guideLocked === "1" && !isAutoConnecting) {
-        autoBtn.disabled = false;
+      } else {
         delete autoBtn.dataset.guideLocked;
       }
+      autoBtn.disabled = isAutoConnecting || disableAutoOnCheckedSpeech || disableAutoAfterCheck;
     }
     updateStarterUI();
     updateRotorSpin();
@@ -1618,6 +1618,11 @@ function setupJsPlumb() {
         // Connections are correct; user will manually turn on the MCB.
         connectionsVerified = true;
         starterMoved = false;
+        const checkedAutoBtn = findButtonByLabel("Auto Connect");
+        if (checkedAutoBtn) {
+          checkedAutoBtn.dataset.checkedLocked = "1";
+          checkedAutoBtn.disabled = true;
+        }
         window.dispatchEvent(new CustomEvent(CONNECTION_VERIFIED_EVENT));
         speakOrAlertLocal(buildVoicePayload("connections_correct_turn_on_mcb"));
         return;
@@ -3109,7 +3114,11 @@ tr:nth-child(even) { background-color: #f8fbff; }
     const resetCheckBtn = findButtonByLabel("Check") || findButtonByLabel("Check Connections");
     if (resetCheckBtn) resetCheckBtn.disabled = false;
     const resetAutoBtn = findButtonByLabel("Auto Connect");
-    if (resetAutoBtn) resetAutoBtn.disabled = false;
+    if (resetAutoBtn) {
+      resetAutoBtn.disabled = false;
+      delete resetAutoBtn.dataset.checkedLocked;
+      delete resetAutoBtn.dataset.guideLocked;
+    }
 
     if (observationBody) {
       observationBody.innerHTML = "";
