@@ -556,7 +556,7 @@ const LAB_VOICE_CATALOG = [
   {
     key: "before_connection_check",
     text: "Please make all the connections first.",
-    audio: "./adudio/before_connection_check.wav"
+    audio: "./audio/before_connection_check.wav"
   },
   {
     key: "before_connection_mcb_alert",
@@ -597,59 +597,59 @@ const LAB_VOICE_CATALOG = [
   {
     key: "duplicate_reading",
     text: "This reading is already added to the table. Please choose a different load.",
-    audio: "#"
+    audio: "./audio/duplicate_reading.wav"
   },
   {
     key: "after_first_reading_added",
     text: "Once again, change the bulb selection.",
-    audio: "#"
+    audio: "./audio/after_first_reading_added.wav"
   },
-  { key: "second_reading", text: "Click add to table button again.", audio: "#" },
+  { key: "second_reading", text: "Click add to table button again.", audio: "./audio/second_reading.wav" },
   {
     key: "graph_or_more_readings",
     text: "Now you can plot the graph by clicking on the graph button or add more readings to the table.",
-    audio: "#"
+    audio: "./audio/graph_or_more_readings.wav"
   },
   {
     key: "after_ten_readings_done",
     text: "All ten readings have been recorded. Now plot the graph and then click on the report button to generate your report.",
-    audio: "#"
+    audio: "./audio/after_ten_readings_done.wav"
   },
   {
     key: "max_readings",
     text: "You can add a maximum of 10 readings to the table. Now, click the Graph button.",
-    audio: "#"
+    audio: "./audio/max_readings.wav"
   },
   {
     key: "graph_complete",
     text: "The graph of terminal voltage versus load current has been plotted. Your experiment is now complete. You may view the report by clicking on the report button, then use print to print the page or reset to start again.",
-    audio: "#"
+    audio: "./audio/graph_complete.wav"
   },
   {
     key: "report_ready",
     text: "Your report has been generated successfully. Click OK to view your report.",
-    audio: "#"
+    audio: "./audio/report_ready.wav"
   },
-  { key: "reset", text: "The simulation has been reset. You can start again.", audio: "#" },
-  { key: "print", text: "Opening the print dialog.", audio: "#" },
-  { key: "reading_added", text: "Reading added to the observation table.", audio: "#" },
+  { key: "reset", text: "The simulation has been reset. You can start again.", audio: "./audio/reset.wav" },
+  { key: "print", text: "Opening the print dialog.", audio: "./audio/print.wav" },
+  { key: "reading_added", text: "Reading added to the observation table.", audio: "./audio/reading_added.wav" },
 
   // Step prompts (normalized key uses sorted point ids from connectionKey).
-  { key: "step_pointC-pointR", text: "Connect point R to point C.", audio: "#" },
-  { key: "step_pointE-pointR", text: "Connect point R to point E.", audio: "#" },
-  { key: "step_pointB-pointG", text: "Connect point B to point G.", audio: "#" },
-  { key: "step_pointA2-pointB", text: "Connect point B to point A 2.", audio: "#" },
-  { key: "step_pointA2-pointZ2", text: "Connect point A 2 to point Z 2.", audio: "#" },
-  { key: "step_pointD-pointL", text: "Connect point L to point D.", audio: "#" },
-  { key: "step_pointA-pointA1", text: "Connect point A to point A 1.", audio: "#" },
-  { key: "step_pointF-pointZ1", text: "Connect point F to point Z 1.", audio: "#" },
-  { key: "step_pointA4-pointL2", text: "Connect point L 2 to point A 4.", audio: "#" },
-  { key: "step_pointA4-pointZ4", text: "Connect point A 4 to point Z 4.", audio: "#" },
-  { key: "step_pointK-pointZ4", text: "Connect point Z 4 to point K.", audio: "#" },
-  { key: "step_pointI-pointJ", text: "Connect point I to point J.", audio: "#" },
-  { key: "step_pointJ-pointL1", text: "Connect point J to point L 1.", audio: "#" },
-  { key: "step_pointA3-pointH", text: "Connect point H to point A 3.", audio: "#" },
-  { key: "step_pointH-pointZ3", text: "Connect point H to point Z 3.", audio: "#" }
+  { key: "step_pointC-pointR", text: "Connect point R to point C.", audio: "./audio/step_pointC-pointR.wav" },
+  { key: "step_pointE-pointR", text: "Connect point R to point E.", audio: "./audio/step_pointE-pointR.wav" },
+  { key: "step_pointB-pointG", text: "Connect point B to point G.", audio: "./audio/step_pointB-pointG.wav" },
+  { key: "step_pointA2-pointB", text: "Connect point B to point A 2.", audio: "./audio/step_pointA2-pointB.wav" },
+  { key: "step_pointA2-pointZ2", text: "Connect point A 2 to point Z 2.", audio: "./audio/step_pointA2-pointZ2.wav" },
+  { key: "step_pointD-pointL", text: "Connect point L to point D.", audio: "./audio/step_pointD-pointL.wav" },
+  { key: "step_pointA-pointA1", text: "Connect point A to point A 1.", audio: "./audio/step_pointA-pointA1.wav" },
+  { key: "step_pointF-pointZ1", text: "Connect point F to point Z 1.", audio: "./audio/step_pointF-pointZ1.wav" },
+  { key: "step_pointA4-pointL2", text: "Connect point L 2 to point A 4.", audio: "./audio/step_pointA4-pointL2.wav" },
+  { key: "step_pointA4-pointZ4", text: "Connect point A 4 to point Z 4.", audio: "./audio/step_pointA4-pointZ4.wav" },
+  { key: "step_pointK-pointZ4", text: "Connect point Z 4 to point K.", audio: "./audio/step_pointK-pointZ4.wav" },
+  { key: "step_pointI-pointJ", text: "Connect point I to point J.", audio: "./audio/step_pointI-pointJ.wav" },
+  { key: "step_pointJ-pointL1", text: "Connect point J to point L 1.", audio: "./audio/step_pointJ-pointL1.wav" },
+  { key: "step_pointA3-pointH", text: "Connect point H to point A 3.", audio: "./audio/step_pointA3-pointH.wav" },
+  { key: "step_pointH-pointZ3", text: "Connect point H to point Z 3.", audio: "./audio/step_pointH-pointZ3.wav" }
 ];
 
 const LAB_VOICE_TEXTS = Object.create(null);
