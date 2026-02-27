@@ -489,7 +489,7 @@ const LAB_VOICE_CATALOG = [
   {
     key: "before_connection_mcb_alert",
     text: "Make and check the connections before turning on the MCB.",
-    audio: "./audio/before_connection_mcb_alert.wav"
+    audio: "./audio/beforeconnecion_on-click MCB.wav"
   },
   {
     key: "connections_correct_turn_on_mcb",
