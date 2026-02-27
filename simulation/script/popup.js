@@ -2,13 +2,36 @@ function normalizePopupMessage(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizePopupAudioSrc(ref) {
+  const value = String(ref || "").trim();
+  if (!value) return "";
+  if (typeof normalizeStaticAudioPath === "function") {
+    return normalizeStaticAudioPath(value);
+  }
+  return value;
+}
+
 function resolvePopupAudioSrc(message) {
   const normalized = normalizePopupMessage(message);
   if (normalized === normalizePopupMessage(COMPONENTS_EXIT_ALERT_MESSAGE)) {
-    return COMPONENTS_EXIT_ALERT_AUDIO_SRC;
+    return normalizePopupAudioSrc(COMPONENTS_EXIT_ALERT_AUDIO_SRC);
   }
   if (normalized === normalizePopupMessage(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE)) {
-    return AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC;
+    return normalizePopupAudioSrc(AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC);
+  }
+
+  if (
+    typeof LAB_VOICE_TEXTS !== "undefined" &&
+    LAB_VOICE_TEXTS &&
+    typeof LAB_VOICE_AUDIO_FILES !== "undefined" &&
+    LAB_VOICE_AUDIO_FILES
+  ) {
+    const matchKey = Object.keys(LAB_VOICE_TEXTS).find((key) => (
+      normalized === normalizePopupMessage(LAB_VOICE_TEXTS[key])
+    ));
+    if (matchKey) {
+      return normalizePopupAudioSrc(LAB_VOICE_AUDIO_FILES[matchKey]);
+    }
   }
   return "";
 }

@@ -352,6 +352,11 @@ document.addEventListener("keydown", (e) => {
     });
 
     const now = new Date();
+    const reportDateText = now.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
     // Ensure all relative assets resolve correctly inside the new report window and in html2canvas.
     const baseHref =
       (() => {
@@ -541,7 +546,7 @@ tr:nth-child(even) { background-color: #f8fbff; }
   <div class="section">
     <p class="badge">Electrical Machines Lab</p>
     <p><span class="label">Experiment Title:</span>To study the Load Characteristics of DC shunt generator</p>
-    <p><span class="label">Date:</span> ${now.toLocaleDateString()}</p>
+    <p><span class="label">Date:</span> ${reportDateText}</p>
     <div class="info-grid">
         <div class="info-card"><span class="label">Start Time:</span><br>${startTimeText}</div>
         <div class="info-card"><span class="label">End Time:</span><br>${endTimeText}</div>

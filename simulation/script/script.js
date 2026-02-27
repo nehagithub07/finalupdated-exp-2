@@ -534,7 +534,7 @@ const LAB_VOICE_CATALOG = [
   },
   {
     key: "guide_starter_on",
-    text: "The starter is already on. Select the number of bulbs from the lamp load.",
+    text: "Select the number of bulbs from the lamp load.",
     audio: "./audio/guide_starter_on.wav"
   },
   {
@@ -555,7 +555,7 @@ const LAB_VOICE_CATALOG = [
   {
     key: "before_connection_mcb_alert",
     text: "Make and check the connections before turning on the MCB.",
-    audio: "./audio/beforeconnecion_on-click MCB.wav"
+    audio: "./audio/before_connection_mcb_alert.wav"
   },
   {
     key: "connections_correct_turn_on_mcb",
@@ -692,13 +692,36 @@ function normalizePopupMessage(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizePopupAudioSrc(ref) {
+  const value = String(ref || "").trim();
+  if (!value) return "";
+  if (typeof normalizeStaticAudioPath === "function") {
+    return normalizeStaticAudioPath(value);
+  }
+  return value;
+}
+
 function resolvePopupAudioSrc(message) {
   const normalized = normalizePopupMessage(message);
   if (normalized === normalizePopupMessage(COMPONENTS_EXIT_ALERT_MESSAGE)) {
-    return COMPONENTS_EXIT_ALERT_AUDIO_SRC;
+    return normalizePopupAudioSrc(COMPONENTS_EXIT_ALERT_AUDIO_SRC);
   }
   if (normalized === normalizePopupMessage(AUTO_CONNECT_COMPLETED_ALERT_MESSAGE)) {
-    return AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC;
+    return normalizePopupAudioSrc(AUTO_CONNECT_COMPLETED_ALERT_AUDIO_SRC);
+  }
+
+  if (
+    typeof LAB_VOICE_TEXTS !== "undefined" &&
+    LAB_VOICE_TEXTS &&
+    typeof LAB_VOICE_AUDIO_FILES !== "undefined" &&
+    LAB_VOICE_AUDIO_FILES
+  ) {
+    const matchKey = Object.keys(LAB_VOICE_TEXTS).find((key) => (
+      normalized === normalizePopupMessage(LAB_VOICE_TEXTS[key])
+    ));
+    if (matchKey) {
+      return normalizePopupAudioSrc(LAB_VOICE_AUDIO_FILES[matchKey]);
+    }
   }
   return "";
 }
@@ -1332,6 +1355,14 @@ function setupJsPlumb() {
     return `${from} - ${to}`;
   }
 
+  function formatConnectionPair(key) {
+    const [a, b] = String(key || "").split("-");
+    const from = formatPointLabel(a);
+    const to = formatPointLabel(b);
+    if (!from || !to) return "";
+    return `${from} - ${to}`;
+  }
+
   function formatConnectionSpeech(key) {
     const [a, b] = String(key || "").split("-");
     const from = formatPointSpeech(a);
@@ -1405,6 +1436,11 @@ function setupJsPlumb() {
       stepGuide.complete("starter");
       if (!wasMoved) {
         window.dispatchEvent(new CustomEvent(STARTER_MOVED_EVENT));
+        const guideIsActive =
+          typeof window.isGuideActive === "function" && window.isGuideActive();
+        if (!guideIsActive && window.labSpeech && typeof window.labSpeech.speak === "function") {
+          window.labSpeech.speak(buildVoicePayload("guide_starter_on"), { interrupt: true });
+        }
       }
     }
     starterHandle.style.cursor = (connectionsVerified && mcbOn && !starterMoved) ? 'grab' : 'default';
@@ -1642,7 +1678,7 @@ function setupJsPlumb() {
 
       const firstIllegal = illegal[0] || null;
       const wrongConnectionLabels = illegal
-        .map((key) => formatConnectionDisplay(key))
+        .map((key) => formatConnectionPair(key))
         .filter(Boolean);
       const missingConnectionLabels = requiredPairs
         .filter((pair) => {
@@ -1662,15 +1698,15 @@ function setupJsPlumb() {
         const preview = wrongConnectionLabels.slice(0, 3).join(", ");
         const extraCount = Math.max(0, wrongConnectionLabels.length - 3);
         const extraText = extraCount ? ` and ${extraCount} more` : "";
-        if (message && !message.endsWith(" ")) message += " ";
-        message += ` Wrong connection${wrongConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+        if (message) message += "\n";
+        message += `Wrong connection${wrongConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
       if (!isInitialWiringState && missingConnectionLabels.length) {
         const preview = missingConnectionLabels.slice(0, 3).join(", ");
         const extraCount = Math.max(0, missingConnectionLabels.length - 3);
         const extraText = extraCount ? ` and ${extraCount} more` : "";
-        if (message && !message.endsWith(" ")) message += " ";
-        message += ` Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+        if (message) message += "\n";
+        message += `Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
 
       let speechKey = "before_connection_check";
@@ -2006,7 +2042,7 @@ function setupJsPlumb() {
           return;
         case "starter_on":
           activateGuideUI();
-          speakGuide(buildVoicePayload("guide_starter_on"));
+          speakGuide(buildVoicePayload("-"));
           return;
         default:
           break;
@@ -2140,14 +2176,9 @@ function setupJsPlumb() {
       );
     });
 
-    window.addEventListener(MCB_TURNED_ON_EVENT, function () {
+    window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
       if (!guideActive) return;
-      speakGuide(
-        buildVoicePayload(
-          "guide_mcb_on",
-          "Now move the starter handle from left to right"
-        )
-      );
+      speakGuide(buildVoicePayload("guide_turn_off_mcb"));
     });
 
     window.addEventListener(STARTER_MOVED_EVENT, function () {
@@ -2155,11 +2186,6 @@ function setupJsPlumb() {
       speakGuide(
         buildVoicePayload("guide_starter_on", "Select the number of bulbs from the lamp load.")
       );
-    });
-
-    window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
-      if (!guideActive) return;
-      speakGuide(buildVoicePayload("guide_turn_off_mcb"));
     });
   })();
 
@@ -2585,6 +2611,11 @@ document.addEventListener("keydown", (e) => {
     });
 
     const now = new Date();
+    const reportDateText = now.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
     // Ensure all relative assets resolve correctly inside the new report window and in html2canvas.
     const baseHref =
       (() => {
@@ -2773,8 +2804,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
 
   <div class="section">
     <p class="badge">Electrical Machines Lab</p>
-    <p><span class="label">Experiment Title:</span>To study the Load Characteristics of DC shunt generator</p>
-    <p><span class="label">Date:</span> ${now.toLocaleDateString()}</p>
+    <p><span class="label">Experiment Title:</span> To study the Load Characteristics of DC shunt generator</p>
+    <p><span class="label">Date:</span> ${reportDateText}</p>
     <div class="info-grid">
         <div class="info-card"><span class="label">Start Time:</span><br>${startTimeText}</div>
         <div class="info-card"><span class="label">End Time:</span><br>${endTimeText}</div>

@@ -392,6 +392,14 @@ function setupJsPlumb() {
     return `${from} - ${to}`;
   }
 
+  function formatConnectionPair(key) {
+    const [a, b] = String(key || "").split("-");
+    const from = formatPointLabel(a);
+    const to = formatPointLabel(b);
+    if (!from || !to) return "";
+    return `${from} - ${to}`;
+  }
+
   function formatConnectionSpeech(key) {
     const [a, b] = String(key || "").split("-");
     const from = formatPointSpeech(a);
@@ -465,6 +473,11 @@ function setupJsPlumb() {
       stepGuide.complete("starter");
       if (!wasMoved) {
         window.dispatchEvent(new CustomEvent(STARTER_MOVED_EVENT));
+        const guideIsActive =
+          typeof window.isGuideActive === "function" && window.isGuideActive();
+        if (!guideIsActive && window.labSpeech && typeof window.labSpeech.speak === "function") {
+          window.labSpeech.speak(buildVoicePayload("guide_starter_on"), { interrupt: true });
+        }
       }
     }
     starterHandle.style.cursor = (connectionsVerified && mcbOn && !starterMoved) ? 'grab' : 'default';
@@ -702,7 +715,7 @@ function setupJsPlumb() {
 
       const firstIllegal = illegal[0] || null;
       const wrongConnectionLabels = illegal
-        .map((key) => formatConnectionDisplay(key))
+        .map((key) => formatConnectionPair(key))
         .filter(Boolean);
       const missingConnectionLabels = requiredPairs
         .filter((pair) => {
@@ -722,15 +735,15 @@ function setupJsPlumb() {
         const preview = wrongConnectionLabels.slice(0, 3).join(", ");
         const extraCount = Math.max(0, wrongConnectionLabels.length - 3);
         const extraText = extraCount ? ` and ${extraCount} more` : "";
-        if (message && !message.endsWith(" ")) message += " ";
-        message += ` Wrong connection${wrongConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+        if (message) message += "\n";
+        message += `Wrong connection${wrongConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
       if (!isInitialWiringState && missingConnectionLabels.length) {
         const preview = missingConnectionLabels.slice(0, 3).join(", ");
         const extraCount = Math.max(0, missingConnectionLabels.length - 3);
         const extraText = extraCount ? ` and ${extraCount} more` : "";
-        if (message && !message.endsWith(" ")) message += " ";
-        message += ` Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
+        if (message) message += "\n";
+        message += `Missing connection${missingConnectionLabels.length > 1 ? "s" : ""}: ${preview}${extraText}.`;
       }
 
       let speechKey = "before_connection_check";
@@ -1200,14 +1213,9 @@ function setupJsPlumb() {
       );
     });
 
-    window.addEventListener(MCB_TURNED_ON_EVENT, function () {
+    window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
       if (!guideActive) return;
-      speakGuide(
-        buildVoicePayload(
-          "guide_mcb_on",
-          "Now move the starter handle from left to right"
-        )
-      );
+      speakGuide(buildVoicePayload("guide_turn_off_mcb"));
     });
 
     window.addEventListener(STARTER_MOVED_EVENT, function () {
@@ -1215,11 +1223,6 @@ function setupJsPlumb() {
       speakGuide(
         buildVoicePayload("guide_starter_on", "Select the number of bulbs from the lamp load.")
       );
-    });
-
-    window.addEventListener(MCB_TURNED_OFF_EVENT, function () {
-      if (!guideActive) return;
-      speakGuide(buildVoicePayload("guide_turn_off_mcb"));
     });
   })();
 

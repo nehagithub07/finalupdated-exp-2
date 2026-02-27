@@ -461,14 +461,14 @@ const LAB_VOICE_CATALOG = [
     text: "Connections are already verified. Turn on the MCB to continue.",
     audio: "./audio/guide_checked.wav"
   },
-  {
-    key: "guide_mcb_on",
-    text: "The MCB is already on. Move the starter handle from left to right.",
-    audio: "./audio/guide_mcb_on.wav"
-  },
+  // {
+  //   key: "guide_mcb_on",
+  //   text: "The MCB is already on. Move the starter handle from left to right.",
+  //   audio: "./audio/guide_mcb_on.wav"
+  // },
   {
     key: "guide_starter_on",
-    text: "The starter is already on. Select the number of bulbs from the lamp load.",
+    text: "Select the number of bulbs from the lamp load.",
     audio: "./audio/guide_starter_on.wav"
   },
   {
@@ -489,7 +489,7 @@ const LAB_VOICE_CATALOG = [
   {
     key: "before_connection_mcb_alert",
     text: "Make and check the connections before turning on the MCB.",
-    audio: "./audio/beforeconnecion_on-click MCB.wav"
+    audio: "./audio/before_connection_mcb_alert.wav"
   },
   {
     key: "connections_correct_turn_on_mcb",
