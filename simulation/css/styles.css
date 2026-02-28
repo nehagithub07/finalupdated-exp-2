@@ -427,18 +427,22 @@ h3 {
   position: absolute;
   width: clamp(14px, 1.5vw, 18px);
   aspect-ratio: 1;
-  background: url(images/screw.png) center/contain no-repeat;
-  opacity: 0.8;
+  background: url(../images/screw.png) center/contain no-repeat;
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 6;
 }
 
 .meter-card::before {
-  top: 0;
-  left: 0;
+  top: clamp(3px, 0.45vw, 5px);
+  left: clamp(3px, 0.45vw, 5px);
+  transform: rotate(-18deg);
 }
 
 .meter-card::after {
-  bottom: 0;
-  right: 0;
+  bottom: clamp(3px, 0.45vw, 5px);
+  right: clamp(3px, 0.45vw, 5px);
+  transform: rotate(18deg);
 }
 
 /* ---- NEEDLES (responsive + consistent) ---- */
