@@ -2352,6 +2352,18 @@ document.addEventListener("keydown", (e) => {
   const needle2 = document.querySelector(".meter-needle2"); // Ammeter-2 (load current)
   const needle3 = document.querySelector(".meter-needle3"); // Voltmeter-1 (supply voltage)
   const needle4 = document.querySelector(".meter-needle4"); // Voltmeter-2 (terminal voltage)
+  const needleMotionState = new WeakMap();
+  const needleMotionConfig = {
+    stiffness: 240,
+    damping: 28,
+    maxVelocity: 500,
+    restDelta: 0.08,
+    restVelocity: 0.08,
+    maxFrameSeconds: 0.05
+  };
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Reading sets pulled from the legacy implementation
   const ammeter1Readings = [3, 3.6, 5.4, 6.8, 8, 10, 11.5, 13, 14.2, 15.2];
@@ -2434,9 +2446,78 @@ document.addEventListener("keydown", (e) => {
     return true;
   }
 
+  function applyNeedleRotation(el, angleDeg) {
+    el.style.transform = `${NEEDLE_TRANSFORM_TRANSLATE} rotate(${angleDeg}deg)`;
+  }
+
+  function getNeedleState(el, initialAngle) {
+    let state = needleMotionState.get(el);
+    if (state) return state;
+
+    state = {
+      currentAngle: initialAngle,
+      targetAngle: initialAngle,
+      velocity: 0,
+      lastTime: 0,
+      rafId: null
+    };
+    needleMotionState.set(el, state);
+    applyNeedleRotation(el, initialAngle);
+    return state;
+  }
+
+  function startNeedleAnimation(el, state) {
+    if (state.rafId !== null) return;
+
+    const step = (timestamp) => {
+      if (!state.lastTime) {
+        state.lastTime = timestamp;
+      }
+
+      const dt = Math.min((timestamp - state.lastTime) / 1000, needleMotionConfig.maxFrameSeconds);
+      state.lastTime = timestamp;
+
+      const angleError = state.targetAngle - state.currentAngle;
+      const acceleration =
+        needleMotionConfig.stiffness * angleError - needleMotionConfig.damping * state.velocity;
+      state.velocity = clamp(
+        state.velocity + acceleration * dt,
+        -needleMotionConfig.maxVelocity,
+        needleMotionConfig.maxVelocity
+      );
+      state.currentAngle += state.velocity * dt;
+      applyNeedleRotation(el, state.currentAngle);
+
+      const isSettled =
+        Math.abs(state.targetAngle - state.currentAngle) <= needleMotionConfig.restDelta &&
+        Math.abs(state.velocity) <= needleMotionConfig.restVelocity;
+      if (isSettled) {
+        state.currentAngle = state.targetAngle;
+        state.velocity = 0;
+        state.lastTime = 0;
+        state.rafId = null;
+        applyNeedleRotation(el, state.currentAngle);
+        return;
+      }
+
+      state.rafId = window.requestAnimationFrame(step);
+    };
+
+    state.rafId = window.requestAnimationFrame(step);
+  }
+
   function setNeedleRotation(el, angleDeg) {
     if (!el) return;
-    el.style.transform = `${NEEDLE_TRANSFORM_TRANSLATE} rotate(${angleDeg}deg)`;
+
+    const targetAngle = Number.isFinite(angleDeg) ? angleDeg : 0;
+    if (prefersReducedMotion || typeof window.requestAnimationFrame !== "function") {
+      applyNeedleRotation(el, targetAngle);
+      return;
+    }
+
+    const state = getNeedleState(el, targetAngle);
+    state.targetAngle = targetAngle;
+    startNeedleAnimation(el, state);
   }
 
   // Show supply voltage as soon as the starter handle is moved to ON.
