@@ -15,9 +15,13 @@
   const USER_FORM_PROMPT_MESSAGE =
     "If you want to generate a progress report, first you have to fill your details in the user form.";
   const USER_FORM_PROMPT_AUDIO_SRC = "./audio/userinput.wav";
-  const PROGRESS_REPORT_ACCESS_ALERT_MESSAGE =
+  const PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE =
     "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
-  const PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC = "./audio/progressreportalert.wav";
+  const PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE =
+    "Please fill out the user form to access the progress report.";
+  const PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE =
+    "Please generate the simulation report by performing the experiment.";
+  const PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC = "#";
   let userFormPromptAudioEl = null;
   let progressReportAccessAlertAudioEl = null;
 
@@ -30,6 +34,26 @@
     const hasSimulationReport =
       typeof api.hasSimulationReport === "function" ? !!api.hasSimulationReport() : false;
     return hasUser && hasSimulationReport;
+  }
+
+  function getProgressReportRequirements() {
+    const api = VP();
+    const hasUser = typeof api.hasUser === "function" ? !!api.hasUser() : false;
+    const hasSimulationReport =
+      typeof api.hasSimulationReport === "function" ? !!api.hasSimulationReport() : false;
+    return { needsUser: !hasUser, needsSim: !hasSimulationReport };
+  }
+
+  function getProgressReportAccessAlertMessage(needsUser, needsSim) {
+    const api = VP();
+    if (typeof api.getProgressReportBlockMessage === "function") {
+      return String(api.getProgressReportBlockMessage(needsUser, needsSim) || "").trim() ||
+        PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+    }
+    if (needsUser && needsSim) return PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+    if (needsUser) return PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE;
+    if (needsSim) return PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE;
+    return PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
   }
 
   function isProgressReportLink(href) {
@@ -62,7 +86,8 @@
   }
 
   function playProgressReportAccessAlertAudio(message) {
-    if (String(message || "").trim() !== PROGRESS_REPORT_ACCESS_ALERT_MESSAGE) return;
+    const normalizedMessage = String(message || "").trim();
+    if (normalizedMessage !== PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE) return;
     if (!PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC) return;
     if (!progressReportAccessAlertAudioEl) {
       progressReportAccessAlertAudioEl = new Audio(PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC);
@@ -549,13 +574,12 @@
     const progressReportLinks = Array.from(document.querySelectorAll('[data-progress-report-link]'));
 
     function disableProgressReportUI() {
+      const { needsUser, needsSim } = getProgressReportRequirements();
+      const titleMessage = getProgressReportAccessAlertMessage(needsUser, needsSim);
       progressReportLinks.forEach((link) => {
         link.classList.add('opacity-50', 'cursor-not-allowed');
         link.setAttribute('aria-disabled', 'true');
-        link.setAttribute(
-          'title',
-          'Complete the user form and generate the simulation report to enable Progress Report'
-        );
+        link.setAttribute('title', titleMessage);
         // Fallback if Tailwind classes are unavailable (offline).
         link.style.opacity = '0.55';
         link.style.cursor = 'not-allowed';
@@ -581,6 +605,12 @@
     }
     syncProgressReportUI();
 
+    function showProgressReportLockedAlert() {
+      const { needsUser, needsSim } = getProgressReportRequirements();
+      const message = getProgressReportAccessAlertMessage(needsUser, needsSim);
+      showAimAlert(message, 'Instructions');
+    }
+
     const handleProgressLinkClick = (event) => {
       const embedded = shouldEmbedProgress();
       if (canAccessProgressReport()) {
@@ -596,10 +626,7 @@
       event.preventDefault();
       event.stopImmediatePropagation();
 
-      showAimAlert(
-        PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-        'Instructions'
-      );
+      showProgressReportLockedAlert();
     };
 
     if (promptYes) {
@@ -634,10 +661,7 @@
       if (!canAccessProgressReport()) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        showAimAlert(
-          PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-          'Instructions'
-        );
+        showProgressReportLockedAlert();
         return;
       }
 
@@ -662,10 +686,7 @@
         if (canAccessProgressReport()) {
           showEmbeddedProgressSection();
         } else {
-          showAimAlert(
-            PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-            'Instructions'
-          );
+          showProgressReportLockedAlert();
         }
       }
 
@@ -674,10 +695,7 @@
           if (canAccessProgressReport()) {
             showEmbeddedProgressSection();
           } else {
-            showAimAlert(
-              PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-              'Instructions'
-            );
+            showProgressReportLockedAlert();
           }
         }
       });
@@ -686,10 +704,7 @@
     if (isAimPage) {
       window.addEventListener('hashchange', setActiveMenu);
       if (window.location.hash === '#progressreport' && !canAccessProgressReport()) {
-        showAimAlert(
-          PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-          'Instructions'
-        );
+        showProgressReportLockedAlert();
       }
     }
 
@@ -767,7 +782,7 @@
         const returnUrl = typeof data.returnUrl === 'string' ? data.returnUrl : '';
         if (returnUrl) {
           if (isProgressReportLink(returnUrl) && !canAccessProgressReport()) {
-            showAimAlert(PROGRESS_REPORT_ACCESS_ALERT_MESSAGE, 'Instructions');
+            showProgressReportLockedAlert();
             return;
           }
           window.location.href = returnUrl;

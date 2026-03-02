@@ -169,8 +169,22 @@
     return hasUser() && hasSimulationReport();
   }
 
+  const PROGRESS_REPORT_ACCESS_BOTH_MESSAGE =
+    "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+  const PROGRESS_REPORT_ACCESS_USER_ONLY_MESSAGE =
+    "Please fill out the user form to access the progress report.";
+  const PROGRESS_REPORT_ACCESS_SIM_ONLY_MESSAGE =
+    "Please generate the simulation report by performing the experiment.";
+
+  function getReportBlockMessage(needsUser, needsSim) {
+    if (needsUser && needsSim) return PROGRESS_REPORT_ACCESS_BOTH_MESSAGE;
+    if (needsUser) return PROGRESS_REPORT_ACCESS_USER_ONLY_MESSAGE;
+    if (needsSim) return PROGRESS_REPORT_ACCESS_SIM_ONLY_MESSAGE;
+    return PROGRESS_REPORT_ACCESS_BOTH_MESSAGE;
+  }
+
   function showReportBlockMessage(needsUser, needsSim) {
-    const msg = "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+    const msg = getReportBlockMessage(needsUser, needsSim);
     if (typeof window.showAimAlert === "function") window.showAimAlert(msg, "Instructions");
     else window.alert(msg);
   }
@@ -179,10 +193,11 @@
 
   function setReportLinksDisabled(disabled) {
     const links = Array.from(document.querySelectorAll("[data-progress-report-link], a[href*=\"progressreport\"]"));
+    const titleText = getReportBlockMessage(!hasUser(), !hasSimulationReport());
     links.forEach((link) => {
       if (disabled) {
         link.classList.add("opacity-70");
-        link.setAttribute("title", "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.");
+        link.setAttribute("title", titleText);
       } else {
         link.classList.remove("opacity-70");
         link.removeAttribute("title");
@@ -501,6 +516,7 @@
     resetAll,
     canAccessProgressReport,
     hasSimulationReport,
+    getProgressReportBlockMessage: getReportBlockMessage,
     ensureProgressReportState: registerProgressReportGuards
   };
 })();

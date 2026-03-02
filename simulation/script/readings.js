@@ -879,9 +879,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     updateGraphControls();
 
     if (readingsRecorded.length < minGraphPoints) {
-      speak(buildVoicePayload("after_first_reading_added"));
+      speakOrAlert(buildVoicePayload("after_first_reading_added"));
     } else if (readingsRecorded.length >= minGraphPoints && readingsRecorded.length < 10) {
-      speak(buildVoicePayload("graph_or_more_readings"));
+      speakOrAlert(buildVoicePayload("graph_or_more_readings"));
     }
 
     if (!graphReadyAnnounced && readingsRecorded.length >= minGraphPoints) {

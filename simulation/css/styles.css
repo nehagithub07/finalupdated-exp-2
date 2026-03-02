@@ -680,20 +680,19 @@ h3 {
 
 /* ---- LABELS (always below meters, never cut) ---- */
 #ammter1-label,
-#voltmeter1-label,
-#ammter2-label,
-#voltmeter2-label {
+#ammter2-label
+ {
   margin-top: 40px;
   position: absolute;
   top: -35px;
-  left: 38px;
+  left: 33px;
   grid-row: 2;
   letter-spacing: 0.08em;
   font-size: clamp(0.88rem, 0.5vw, 0.89rem);
   color: #3b2f24;
   font-weight: 700;
   white-space: nowrap;
-  width: 150px;
+  width: fit-content;
   padding: 4px 12px;
   background: linear-gradient(135deg, #fff7e2, #e3cfa5);
   box-shadow: 0 3px 0 #b18c58, 0 6px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
@@ -702,7 +701,26 @@ h3 {
   text-align: center;
 
 }
-
+#voltmeter1-label,
+#voltmeter2-label {
+  margin-top: 40px;
+  position: absolute;
+  top: -35px;
+  left: 22px;
+  grid-row: 2;
+  letter-spacing: 0.08em;
+  font-size: clamp(0.88rem, 0.5vw, 0.89rem);
+  color: #3b2f24;
+  font-weight: 700;
+  white-space: nowrap;
+  width: fit-content;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #fff7e2, #e3cfa5);
+  box-shadow: 0 3px 0 #b18c58, 0 6px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 0 #fff, 0 2px 4px rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  text-align: center;
+}
 #ammter1-label {
   grid-column: 1;
 }

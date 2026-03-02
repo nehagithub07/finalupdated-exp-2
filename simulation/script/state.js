@@ -22,7 +22,7 @@ function resetSpeakButtonUI() {
 
   const label = speakBtn.querySelector(".speak-btn__label");
   if (label) {
-    label.textContent = "Tap To Listen";
+    label.textContent = "AI Guide";
   }
 }
 

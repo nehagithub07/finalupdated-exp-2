@@ -22,7 +22,7 @@ function resetSpeakButtonUI() {
 
   const label = speakBtn.querySelector(".speak-btn__label");
   if (label) {
-    label.textContent = "Tap To Listen";
+    label.textContent = "AI Guide";
   }
 }
 
@@ -636,9 +636,9 @@ const LAB_VOICE_CATALOG = [
   },
   { key: "reset", text: "The simulation has been reset. You can start again.", audio: "./audio/reset.wav" },
   { key: "print", text: "Opening the print dialog.", audio: "./audio/print.wav" },
-  { key: "reading_added", text: "Reading added to the observation table.", audio: "./audio/reading_added.wav" },
+  { key: "reading_added", text: "Reading added to the observation table.", audio: "#" },
 
-  // Step prompts (normalized key uses sorted point ids from connectionKey).
+  // Step prompts (normalized key uses sorted point ids from connectionKey)..
   { key: "step_pointC-pointR", text: "Connect point R to point C.", audio: "./audio/step_pointC-pointR.wav" },
   { key: "step_pointE-pointR", text: "Connect point R to point E.", audio: "./audio/step_pointE-pointR.wav" },
   { key: "step_pointB-pointG", text: "Connect point B to point G.", audio: "./audio/step_pointB-pointG.wav" },

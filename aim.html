@@ -2621,8 +2621,12 @@
   const yesBtn = document.getElementById("promptYes");
   const noBtn  = document.getElementById("promptNo");
   const AIM_USER_FORM_PROMPT_AUDIO_SRC = "./audio/userinput.wav";
-  const AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE =
+  const AIM_PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE =
     "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+  const AIM_PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE =
+    "Please fill out the user form to access the progress report.";
+  const AIM_PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE =
+    "Please generate the simulation report by performing the experiment.";
   const AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC = "./audio/progressreportalert.wav";
   let aimUserFormPromptAudioEl = null;
   let aimProgressReportAccessAlertAudioEl = null;
@@ -2646,8 +2650,20 @@
     aimUserFormPromptAudioEl.currentTime = 0;
   }
 
+  function getAimProgressReportAccessAlertMessage(needUser, needSim) {
+    if (window.VLProgress && typeof window.VLProgress.getProgressReportBlockMessage === "function") {
+      const mapped = window.VLProgress.getProgressReportBlockMessage(needUser, needSim);
+      if (String(mapped || "").trim()) return String(mapped).trim();
+    }
+    if (needUser && needSim) return AIM_PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+    if (needUser) return AIM_PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE;
+    if (needSim) return AIM_PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE;
+    return AIM_PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+  }
+
   function playAimProgressReportAccessAlertAudio(message) {
-    if (String(message || "").trim() !== AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE) return;
+    const normalizedMessage = String(message || "").trim();
+    if (normalizedMessage !== AIM_PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE) return;
     if (!AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC) return;
     if (!aimProgressReportAccessAlertAudioEl) {
       aimProgressReportAccessAlertAudioEl = new Audio(AIM_PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC);
@@ -2954,11 +2970,11 @@
     return false;
   }
 
-  function disableProgressReportUI() {
+  function disableProgressReportUI(message = AIM_PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE) {
     progressReportLinks.forEach((link) => {
       link.classList.add("opacity-50", "cursor-not-allowed");
       link.setAttribute("aria-disabled", "true");
-      link.setAttribute("title", "Fill the user form and complete the simulation to enable Progress Report");
+      link.setAttribute("title", message);
       // Fallback if Tailwind classes are unavailable (offline).
       link.style.opacity = "0.55";
       link.style.cursor = "not-allowed";
@@ -2976,8 +2992,13 @@
   }
 
   function ensureProgressReportState() {
-    if (VLProgress.hasUser() && hasSimulationReport()) enableProgressReportUI();
-    else disableProgressReportUI();
+    const needUser = !VLProgress.hasUser();
+    const needSim = !hasSimulationReport();
+    if (!needUser && !needSim) {
+      enableProgressReportUI();
+    } else {
+      disableProgressReportUI(getAimProgressReportAccessAlertMessage(needUser, needSim));
+    }
   }
 
   ensureProgressReportState();
@@ -3008,7 +3029,7 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
+      const msg = getAimProgressReportAccessAlertMessage(needUser, needSim);
       showAimAlert(msg, "Instructions");
     }, true);
   });
@@ -3024,16 +3045,20 @@
       href === "#progressreport" ||
       href.endsWith("#progressreport");
     if (!isProgressLink) return;
-    if (VLProgress.hasUser() && hasSimulationReport()) return;
+    const needUser = !VLProgress.hasUser();
+    const needSim = !hasSimulationReport();
+    if (!needUser && !needSim) return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
+    const msg = getAimProgressReportAccessAlertMessage(needUser, needSim);
     showAimAlert(msg, "Instructions");
   }, true);
 
   // If user loads aim.html#progressreport directly without user form
   if (window.location.hash === "#progressreport" && (!VLProgress.hasUser() || !hasSimulationReport())) {
-    const msg = AIM_PROGRESS_REPORT_ACCESS_ALERT_MESSAGE;
+    const needUser = !VLProgress.hasUser();
+    const needSim = !hasSimulationReport();
+    const msg = getAimProgressReportAccessAlertMessage(needUser, needSim);
     showAimAlert(msg, "Instructions");
   }
 

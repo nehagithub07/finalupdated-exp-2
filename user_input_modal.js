@@ -13,8 +13,12 @@
   const USER_FORM_PROMPT_MESSAGE =
     "If you want to generate a progress report, first you have to fill your details in the user form.";
   const USER_FORM_PROMPT_AUDIO_SRC = "./audio/userinput.wav";
-  const PROGRESS_REPORT_ACCESS_ALERT_MESSAGE =
+  const PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE =
     "To access the progress report, first fill out the user form and generate the simulation report by performing the experiment.";
+  const PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE =
+    "Please fill out the user form to access the progress report.";
+  const PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE =
+    "Please generate the simulation report by performing the experiment.";
   const PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC = "./audio/progressreportalert.wav";
   let userFormPromptAudioEl = null;
   let progressReportAccessAlertAudioEl = null;
@@ -28,6 +32,26 @@
     const hasSimulationReport =
       typeof api.hasSimulationReport === "function" ? !!api.hasSimulationReport() : false;
     return hasUser && hasSimulationReport;
+  }
+
+  function getProgressReportRequirements() {
+    const api = VP();
+    const hasUser = typeof api.hasUser === "function" ? !!api.hasUser() : false;
+    const hasSimulationReport =
+      typeof api.hasSimulationReport === "function" ? !!api.hasSimulationReport() : false;
+    return { needsUser: !hasUser, needsSim: !hasSimulationReport };
+  }
+
+  function getProgressReportAccessAlertMessage(needsUser, needsSim) {
+    const api = VP();
+    if (typeof api.getProgressReportBlockMessage === "function") {
+      return String(api.getProgressReportBlockMessage(needsUser, needsSim) || "").trim() ||
+        PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+    }
+    if (needsUser && needsSim) return PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
+    if (needsUser) return PROGRESS_REPORT_ACCESS_ALERT_USER_ONLY_MESSAGE;
+    if (needsSim) return PROGRESS_REPORT_ACCESS_ALERT_SIM_ONLY_MESSAGE;
+    return PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE;
   }
 
   function isProgressReportLink(href) {
@@ -60,7 +84,8 @@
   }
 
   function playProgressReportAccessAlertAudio(message) {
-    if (String(message || "").trim() !== PROGRESS_REPORT_ACCESS_ALERT_MESSAGE) return;
+    const normalizedMessage = String(message || "").trim();
+    if (normalizedMessage !== PROGRESS_REPORT_ACCESS_ALERT_BOTH_MESSAGE) return;
     if (!PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC) return;
     if (!progressReportAccessAlertAudioEl) {
       progressReportAccessAlertAudioEl = new Audio(PROGRESS_REPORT_ACCESS_ALERT_AUDIO_SRC);
@@ -376,13 +401,12 @@
   }
 
   function disableProgressReportLinks() {
+    const { needsUser, needsSim } = getProgressReportRequirements();
+    const titleMessage = getProgressReportAccessAlertMessage(needsUser, needsSim);
     document.querySelectorAll('[data-progress-report-link], a[href*="progressreport"]').forEach((a) => {
       a.classList.add("opacity-50", "cursor-not-allowed");
       a.setAttribute("aria-disabled", "true");
-      a.setAttribute(
-        "title",
-        "Complete the user form and generate the simulation report to enable Progress Report"
-      );
+      a.setAttribute("title", titleMessage);
       a.style.opacity = "0.55";
       a.style.cursor = "not-allowed";
     });
@@ -459,10 +483,8 @@
 
       event.preventDefault();
       event.stopImmediatePropagation();
-      showThemedAlert(
-        PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-        "Instructions"
-      );
+      const { needsUser, needsSim } = getProgressReportRequirements();
+      showThemedAlert(getProgressReportAccessAlertMessage(needsUser, needsSim), "Instructions");
     }, true);
 
     // Prompt on aim (optional)
@@ -530,10 +552,8 @@
         const returnUrl = typeof data.returnUrl === "string" ? data.returnUrl : "";
         if (returnUrl) {
           if (isProgressReportLink(returnUrl) && !canAccessProgressReport()) {
-            showThemedAlert(
-              PROGRESS_REPORT_ACCESS_ALERT_MESSAGE,
-              "Instructions"
-            );
+            const { needsUser, needsSim } = getProgressReportRequirements();
+            showThemedAlert(getProgressReportAccessAlertMessage(needsUser, needsSim), "Instructions");
             return;
           }
           window.location.href = returnUrl;
