@@ -718,63 +718,116 @@
       </div>
 
       <!-- Theory Content -->
-      <section class="section-content vl-card p-6 animate-fadeInUp">
-       
+<section class="section-content vl-card p-6 animate-fadeInUp">
 
-        <div class="space-y-8 text-gray-700 text-lg leading-relaxed">
+  <div class="space-y-8 text-gray-700 text-lg leading-relaxed">
 
-          <div>
-            <h3 class="text-xl font-semibold mb-4 text-gray-800">Introduction</h3>
-            <p class="mb-6 text-justify">
-              A DC shunt generator is a type of self-excited DC generator in which the field winding is connected in parallel (shunt) with the armature winding. As a result, the field current remains almost constant (since it depends only on the terminal voltage). The yoke of a DC generator is made of cast iron because it provides high magnetic permeability, good mechanical strength, and serves as a low-reluctance path for the magnetic flux. <br>
-              <br>The performance of a DC shunt generator is described using load characteristics, which illustrate how the terminal voltage and load current change as the load varies. <br>
-<br>
-             In a shunt generator, the field winding is connected in parallel with the armature winding so that the terminal voltage of the generator is applied across it. The shunt field winding has many turns of fine wire having high resistance. Therefore, only a part of the armature current flows through the shunt field winding, and the rest flows through the load. Fig. 1 shows the connections of a shunt wound generator. The armature current Ia splits up into two parts - a small fraction Ish flowing through the shunt field winding, while the major part IL goes to the external load.
-            </p>
-            <div class="flex justify-center mb-4">
-              <img src="./images/DCS-01.png" alt="Equivalent circuit of DC shunt generator for load characteristics" class="w-[500px] h-[250px] rounded-lg shadow-md">
-            </div>
-            <p class="text-center font-semibold text-gray-800"><b>Fig. 1 Equivalent circuit of DC shunt generator for load characteristics</b></p>
-          </div>
-          <div>
-            <h3 class="text-xl font-semibold mb-4 text-gray-800 ">Losses in a DC Shunt Generator</h3>
-            <p class="mb-4 text-justify">
-   
-             In a DC shunt generator, various losses occur during operation, such as armature copper losses, shunt field copper losses, iron losses, and mechanical losses. Among these, armature copper losses constitute a significant portion of the total losses. The copper losses in the armature of a DC shunt generator are approximately 30% of the total full-load losses. These losses occur due to the resistance of the armature winding and increase with load current, thereby affecting the efficiency and voltage regulation of the generator.
+    <!-- Introduction -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Introduction</h3>
+      <p class="mb-6 text-justify">
+        A DC shunt generator is a type of self-excited DC generator in which the field winding is connected in parallel (shunt) with the armature winding. As a result, the field current remains almost constant (since it depends only on the terminal voltage). The yoke of a DC generator is made of cast iron because it provides high magnetic permeability, good mechanical strength, and serves as a low-reluctance path for the magnetic flux.
+      </p>
 
-          <div>
-            <h3 class="text-xl font-semibold mb-4 text-gray-800">Internal characteristic</h3>
-            <p class="mb-4">
-              The internal characteristic curve represents the relation between the generated voltage E<sub>g</sub> and the load current I<sub>L</sub>. When the generator is loaded then the generated voltage decreases due to armature reaction. So, generated voltage becomes lower than the emf generated at no load. Here in the figure below, AD curve shows the no-load voltage curve and AB is the internal characteristic curve.
-            </p>
-          </div>
+      <p class="mb-6 text-justify">
+        The performance of a DC shunt generator is described using load characteristics, which illustrate how the terminal voltage and load current change as the load varies.
+      </p>
 
-          <div>
-            <h3 class="text-xl font-semibold mb-4 text-gray-800">External or Load characteristic</h3>
-            <p class="mb-4">
-              AC curve shows the external characteristic of the shunt wound DC generators. It shows the variation of terminal voltage with the load current. Ohmic drop due to armature resistance gives lesser terminal voltage than the generated voltage. That is why the curve lies below the internal characteristic curve.
-            </p>
-            <div class="text-center text-lg font-mono my-6 bg-gray-100 p-4 rounded-lg">
-              V = (E<sub>g</sub> − I<sub>a</sub>R<sub>a</sub>) = E<sub>g</sub> − (I<sub>L</sub> + I<sub>sh</sub>)R<sub>a</sub>
-            </div>
-            <p class="mb-4">
-              The terminal voltage can always be maintained constant by adjusting the load terminal. When the load resistance of a shunt-wound DC generator is decreased, the load current increases as shown in the above figure. But the load current can only be increased up to a certain limit (up to point C) with decrease of load resistance. Beyond this point, the characteristic reverses. Any further decrease of load resistance results in current reduction and consequently, the external characteristic curve turns back as shown in the dotted line, and ultimately the terminal voltage becomes zero (though some voltage remains due to residual magnetism).
-            </p>
-            <p class="mb-6">
-              When I<sub>L</sub> increases, terminal voltage decreases. After a certain limit, due to heavy load current and increased ohmic drop, the terminal voltage reduces drastically. This drastic reduction results in a drop in load current even though load resistance becomes low. Therefore, the load resistance of the machine must be maintained properly. The point at which the machine gives maximum current output is called the breakdown point (point C in the figure).
-            </p>
-            <div class="flex justify-center mb-4">
-              <img src="./images/DCS-02.png" alt="Load characteristics of DC shunt generator" class="w-[500px] h-[250px] rounded-lg shadow-md">
-            </div>
-            <p class="text-center font-semibold text-gray-800"><b>Fig. 2 Load characteristics of DC shunt generator</b></p>
-            <p class="mb-0">
-              <b>Note:</b> It may be seen from the external characteristic that change in terminal voltage from no-load to full-load is small. The terminal voltage can always be maintained constant by adjusting the field rheostat R automatically.
-            </p>
-          </div>
+      <p class="mb-6 text-justify">
+        In a shunt generator, the field winding is connected in parallel with the armature winding so that the terminal voltage of the generator is applied across it. The shunt field winding has many turns of fine wire having high resistance. Therefore, only a part of the armature current flows through the shunt field winding, and the rest flows through the load. Fig. 1 shows the connections of a shunt wound generator. The armature current I<sub>a</sub> splits into two parts — a small fraction I<sub>sh</sub> flowing through the shunt field winding, while the major part I<sub>L</sub> goes to the external load.
+      </p>
 
-        </div>
+      <div class="flex justify-center mb-4">
+        <img src="./images/DCS-01.png" alt="Equivalent circuit of DC shunt generator for load characteristics" class="w-[500px] h-[250px] rounded-lg shadow-md">
+      </div>
+      <p class="text-center font-semibold text-gray-800">
+        <b>Fig. 1 Equivalent circuit of DC shunt generator for load characteristics</b>
+      </p>
+    </div>
 
-      </section>
+    <!-- Losses -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Losses in a DC Shunt Generator</h3>
+      <p class="mb-6 text-justify">
+        In a DC shunt generator, various losses occur during operation, such as armature copper losses, shunt field copper losses, iron losses, and mechanical losses. Among these, armature copper losses constitute a significant portion of the total losses. The copper losses in the armature of a DC shunt generator are approximately 30% of the total full-load losses. These losses occur due to the resistance of the armature winding and increase with load current, thereby affecting the efficiency and voltage regulation of the generator.
+      </p>
+    </div>
+
+    <!-- Types of Characteristics -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Types of Characteristics</h3>
+      <p class="mb-4">
+        There are two main characteristics of a DC shunt generator:
+      </p>
+
+      <h4 class="text-lg font-semibold mb-2 text-gray-800">1. Internal Characteristic</h4>
+      <p class="mb-6 text-justify">
+        The internal characteristic curve represents the relation between the generated voltage (E<sub>g</sub>) and the load current I<sub>L</sub>. When the generator is loaded, the generated voltage decreases due to armature reaction. Therefore, the generated voltage will be lower than the emf generated at no load. In Fig. 2, the AD curve shows the no-load voltage curve, and AB represents the internal characteristic curve.
+      </p>
+
+      <h4 class="text-lg font-semibold mb-2 text-gray-800">2. External or Load Characteristic</h4>
+      <p class="mb-4 text-justify">
+        The external characteristic of a DC shunt generator represents the relationship between the terminal voltage (V) and the load current (I<sub>L</sub>) while the generator is supplying power. It shows how the terminal voltage varies with changes in the load.
+      </p>
+
+      <p class="mb-4 text-justify">
+        This characteristic is typically represented by a V–I<sub>L</sub> graph. In Fig. 2, the AC curve represents the external characteristic of the DC shunt generator. Due to the ohmic drop in the armature resistance, the terminal voltage is lower than the generated voltage. Therefore, the external characteristic curve lies below the internal characteristic curve.
+      </p>
+
+      <div class="text-center text-lg font-mono my-6 bg-gray-100 p-4 rounded-lg">
+        V = (E<sub>g</sub> − I<sub>a</sub>R<sub>a</sub>) = E<sub>g</sub> − (I<sub>L</sub> + I<sub>sh</sub>)R<sub>a</sub>
+      </div>
+
+      <p class="mb-2"><strong>Where,</strong></p>
+      <ul class="list-disc pl-6 mb-6 space-y-1">
+        <li>V is the terminal voltage of the generator</li>
+        <li>E<sub>g</sub> is the generated emf in the armature</li>
+        <li>I<sub>a</sub> is armature current and R<sub>a</sub> is armature resistance</li>
+        <li>I<sub>sh</sub> is the current flowing through the shunt field winding</li>
+        <li>I<sub>L</sub> is the load current delivered to the external load</li>
+      </ul>
+
+      <div class="flex justify-center mb-4">
+        <img src="./images/DCS-02.png" alt="Load characteristics of DC shunt generator" class="w-[500px] h-[250px] rounded-lg shadow-md">
+      </div>
+      <p class="text-center font-semibold text-gray-800">
+        <b>Fig. 2 Characteristics of DC shunt generator</b>
+      </p>
+    </div>
+
+    <!-- Behaviour -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Behaviour of External Characteristics</h3>
+      <p class="mb-6 text-justify">
+        When the load resistance of a DC shunt generator decreases, the load current (I<sub>L</sub>) increases. However, this increase is limited only up to point C, known as the breakdown point. Beyond this point, a further decrease in load resistance causes a decrease in load current, and the external characteristic curve reverses (shown by the dotted line). Eventually, the terminal voltage may drop to zero except for a small value due to residual magnetism. The point at which the generator delivers maximum current is called the breakdown point.
+      </p>
+    </div>
+
+    <!-- Advantages -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Advantages</h3>
+      <ul class="list-disc pl-6 mb-6 space-y-2">
+        <li>Provides nearly constant terminal voltage under light to medium load.</li>
+        <li>Stable operation within a certain load range.</li>
+        <li>Suitable for battery charging, lighting, and excitation purposes where steady voltage is required.</li>
+        <li>Simple voltage control by adjusting the field current.</li>
+      </ul>
+    </div>
+
+    <!-- Disadvantages -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Disadvantages</h3>
+      <ul class="list-disc pl-6 space-y-2">
+        <li>Poor voltage regulation at high load current.</li>
+        <li>Stability decreases with decreasing load resistance.</li>
+        <li>Depends on residual magnetism for initial voltage build-up.</li>
+        <li>Breakdown point limitation: beyond a certain load current, the characteristic curve reverses.</li>
+      </ul>
+    </div>
+
+  </div>
+
+</section>
    <section id="progressreport" class="section-content vl-card mb-8 p-6 animate-fadeInUp hidden">
           <div class="border-l-4 border-orange-600 pl-4 mb-4 flex items-center justify-between">
             <div class="flex items-center">
