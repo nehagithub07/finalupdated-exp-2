@@ -456,20 +456,20 @@ document.addEventListener("keydown", (e) => {
     const css = `
 body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  background: #f3f6fb;
+  background: linear-gradient(180deg, #eef4fb 0%, #f7f9fc 100%);
   color: #1f2d3d;
   margin: 0;
-  padding: 32px 24px 48px;
+  padding: 30px 22px 44px;
   line-height: 1.65;
 }
 .report-page {
   max-width: 960px;
   margin: 0 auto 24px;
-  padding: 32px;
+  padding: 34px 34px 30px;
   background-color: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e5e9f2;
-  box-shadow: 0 10px 30px rgba(31, 45, 61, 0.12);
+  border-radius: 18px;
+  border: 1px solid #dfe7f1;
+  box-shadow: 0 18px 38px rgba(23, 50, 77, 0.12);
   box-sizing: border-box;
 }
 .report-page:last-of-type { margin-bottom: 0; }
@@ -479,25 +479,60 @@ body {
 }
 h1, h2, h3 { color: #1f2d3d; margin-top: 0; font-weight: 700; }
 h1 {
-  font-size: 28px;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 3px solid #2f7bfa;
+  font-size: 32px;
+  margin: 0;
+  padding: 0;
+  line-height: 1.15;
 }
-h2 { font-size: 22px; margin-bottom: 10px; color: #2b3f55; }
-h3 { font-size: 18px; margin-bottom: 8px; }
+h2 { font-size: 23px; margin-bottom: 16px; color: #243b53; }
+h3 { font-size: 17px; margin-bottom: 10px; color: #2d4b68; }
+p { margin: 0 0 12px; }
+li { margin-bottom: 6px; }
 .section {
-  background: linear-gradient(135deg, #f8fbff 0%, #f3f6fb 100%);
-  padding: 20px 22px;
-  margin-bottom: 28px;
-  border-radius: 12px;
-  border: 1px solid #e5e9f2;
-  box-shadow: 0 4px 12px rgba(31,45,61,0.06);
+  background: linear-gradient(180deg, #f9fbfe 0%, #f4f7fb 100%);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  border-radius: 14px;
+  border: 1px solid #e0e8f2;
+  box-shadow: 0 6px 16px rgba(31,45,61,0.05);
 }
 .section:last-child { margin-bottom: 0; }
 .label { font-weight: 600; color: #1f2d3d; }
 ul { padding-left: 20px; margin-top: 10px; }
 .two-column-list { column-count: 2; column-gap: 40px; list-style-position: inside; margin-top: 10px; }
+.report-overview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.report-stamp {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #dce5ef;
+  color: #50657c;
+  font-size: 13px;
+  font-weight: 600;
+}
+.report-experiment-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #60778f;
+  font-weight: 700;
+}
+.report-experiment-title {
+  margin: 0 0 18px;
+  font-size: 25px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #16324b;
+}
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -511,21 +546,31 @@ ul { padding-left: 20px; margin-top: 10px; }
   padding: 12px 14px;
   box-shadow: 0 4px 10px rgba(31,45,61,0.05);
   font-size: 14px;
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.table-shell {
+  overflow: hidden;
+  border: 1px solid #dce6f2;
+  border-radius: 12px;
 }
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
-  box-shadow: 0 2px 10px rgba(31, 45, 61, 0.06);
+  margin-top: 0;
+  box-shadow: none;
   background-color: white;
-  border-radius: 10px;
-  overflow: hidden;
+  table-layout: fixed;
 }
 th, td {
   border: 1px solid #e5e9f2;
   padding: 12px;
   text-align: center;
   font-size: 15px;
+  vertical-align: middle;
 }
 th {
   background: linear-gradient(135deg, #2f7bfa 0%, #1f62d0 100%);
@@ -539,48 +584,82 @@ tr:nth-child(even) { background-color: #f8fbff; }
   gap: 18px;
 }
 .results-card {
+  background: #ffffff;
+  border: 1px solid #dde6f0;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 12px rgba(31,45,61,0.05);
   break-inside: avoid;
   page-break-inside: avoid;
 }
+.results-card h3 {
+  margin-bottom: 12px;
+  text-align: left;
+}
 .compact-table {
-  margin-top: 12px;
+  margin-top: 0;
 }
 .compact-table th,
 .compact-table td {
-  padding: 9px 10px;
+  padding: 10px 12px;
   font-size: 14px;
+}
+.compact-table th:first-child,
+.compact-table td:first-child {
+  width: 18%;
 }
 .graph {
   text-align: center;
-  margin-top: 24px;
-  padding: 20px;
-  border: 1px solid #e5e9f2;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 4px 10px rgba(31,45,61,0.06);
+  margin-top: 0;
 }
 .report-graph-card {
-  margin-top: 0;
-  padding: 16px 18px 18px;
+  padding: 18px;
 }
 .report-graph-card #report-graph {
-  position: relative;
-  width: 100%;
-  height: 280px;
-}
-.header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 26px;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  height: 300px;
+  background: linear-gradient(180deg, #f8fbfe 0%, #eef5fb 100%);
+  border: 1px solid #dde8f3;
+  border-radius: 12px;
+  overflow: hidden;
 }
-.header-row h1 {
-  flex: 1;
+.report-graph-card #report-graph em {
+  color: #5e738c;
+  font-style: normal;
+  font-weight: 600;
+}
+.header-row {
+  display: grid;
+  grid-template-columns: 108px 1fr 108px;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.report-title-block {
   text-align: center;
   margin: 0;
+  padding-bottom: 14px;
+  border-bottom: 3px solid #2f7bfa;
+}
+.report-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #5d7794;
+  font-weight: 700;
+}
+.report-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #5c6f84;
 }
 .badge {
+  margin: 0;
   padding: 8px 14px;
   border-radius: 20px;
   background: #e8f1ff;
@@ -589,11 +668,12 @@ tr:nth-child(even) { background-color: #f8fbff; }
   font-size: 13px;
 }
 .vl-logo {
-  height: 100px;
+  height: 84px;
   width: auto;
-  max-width: 200px;
+  max-width: 120px;
   object-fit: contain;
   flex-shrink: 0;
+  justify-self: center;
 }
 .report-actions {
   display: flex;
@@ -630,10 +710,19 @@ tr:nth-child(even) { background-color: #f8fbff; }
   body { margin:0; padding:0; background:#ffffff; }
   .report-page {
     margin: 0 0 14px;
-    padding: 24px;
+    padding: 24px 26px 22px;
     border: none;
     box-shadow: none;
     border-radius: 0;
+  }
+  .header-row {
+    grid-template-columns: 96px 1fr 96px;
+  }
+  .report-experiment-title {
+    font-size: 22px;
+  }
+  .report-graph-card #report-graph {
+    height: 280px;
   }
   .results-stack,
   .results-card,
@@ -672,14 +761,21 @@ tr:nth-child(even) { background-color: #f8fbff; }
   <div class="report-page">
     <div class="header-row">
       <img src="${logoLeftSrc}" class="vl-logo" />
-      <h1>Virtual Labs Simulation Report</h1>
+      <div class="report-title-block">
+        <p class="report-kicker">Virtual Labs</p>
+        <h1>Simulation Report</h1>
+        <p class="report-subtitle">DC Shunt Generator Load Characteristics</p>
+      </div>
       <img src="${logoRightSrc}" class="vl-logo" />
     </div>
 
-    <div class="section">
-      <p class="badge">Electrical Machines Lab</p>
-      <p><span class="label">Experiment Title:</span> To Study the Load Characteristics of a DC Shunt Generator</p>
-      <p><span class="label">Date:</span> ${reportDateText}</p>
+    <div class="section report-overview">
+      <div class="report-overview-top">
+        <p class="badge">Electrical Machines Lab</p>
+        <p class="report-stamp">Generated on ${reportDateText}</p>
+      </div>
+      <p class="report-experiment-label">Experiment Title</p>
+      <p class="report-experiment-title">To Study the Load Characteristics of a DC Shunt Generator</p>
       <div class="info-grid">
           <div class="info-card"><span class="label">Start Time:</span><br>${startTimeText}</div>
           <div class="info-card"><span class="label">End Time:</span><br>${endTimeText}</div>
@@ -716,16 +812,23 @@ tr:nth-child(even) { background-color: #f8fbff; }
       <div class="results-stack">
         <div class="results-card">
           <h3>Observation Table</h3>
-          <table class="compact-table">
-            <thead>
-              <tr><th>S.No.</th><th>Load Current (A)</th><th>Terminal Voltage (V)</th></tr>
-            </thead>
-            <tbody>
-              ${observationRows.length ? observationRows.map(function (r) {
-                  return "<tr><td>" + r.sNo + "</td><td>" + r.current + "</td><td>" + r.voltage + "</td></tr>";
-              }).join("") : "<tr><td colspan='3'>No readings recorded.</td></tr>"}
-            </tbody>
-          </table>
+          <div class="table-shell">
+            <table class="compact-table">
+              <colgroup>
+                <col style="width:18%">
+                <col style="width:41%">
+                <col style="width:41%">
+              </colgroup>
+              <thead>
+                <tr><th>S.No.</th><th>Load Current (A)</th><th>Terminal Voltage (V)</th></tr>
+              </thead>
+              <tbody>
+                ${observationRows.length ? observationRows.map(function (r) {
+                    return "<tr><td>" + r.sNo + "</td><td>" + r.current + "</td><td>" + r.voltage + "</td></tr>";
+                }).join("") : "<tr><td colspan='3'>No readings recorded.</td></tr>"}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div class="graph report-graph-card results-card">
@@ -771,8 +874,11 @@ tr:nth-child(even) { background-color: #f8fbff; }
           var img = new Image();
           img.src = imgData;
           img.alt = graphTitle;
+          img.style.display = 'block';
+          img.style.width = '100%';
           img.style.maxWidth = '100%';
           img.style.height = 'auto';
+          img.style.borderRadius = '10px';
           graphContainer.innerHTML = '';
           graphContainer.appendChild(img);
         }).catch(function() {
