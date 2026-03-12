@@ -2717,14 +2717,24 @@ body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   background: #f3f6fb;
   color: #1f2d3d;
-  margin: 40px auto;
+  margin: 0;
+  padding: 32px 24px 48px;
+  line-height: 1.65;
+}
+.report-page {
   max-width: 960px;
+  margin: 0 auto 24px;
   padding: 32px;
   background-color: #ffffff;
   border-radius: 16px;
   border: 1px solid #e5e9f2;
   box-shadow: 0 10px 30px rgba(31, 45, 61, 0.12);
-  line-height: 1.65;
+  box-sizing: border-box;
+}
+.report-page:last-of-type { margin-bottom: 0; }
+.report-page--results {
+  break-before: page;
+  page-break-before: always;
 }
 h1, h2, h3 { color: #1f2d3d; margin-top: 0; font-weight: 700; }
 h1 {
@@ -2743,6 +2753,7 @@ h3 { font-size: 18px; margin-bottom: 8px; }
   border: 1px solid #e5e9f2;
   box-shadow: 0 4px 12px rgba(31,45,61,0.06);
 }
+.section:last-child { margin-bottom: 0; }
 .label { font-weight: 600; color: #1f2d3d; }
 ul { padding-left: 20px; margin-top: 10px; }
 .two-column-list { column-count: 2; column-gap: 40px; list-style-position: inside; margin-top: 10px; }
@@ -2782,6 +2793,22 @@ th {
   letter-spacing: 0.2px;
 }
 tr:nth-child(even) { background-color: #f8fbff; }
+.results-stack {
+  display: grid;
+  gap: 18px;
+}
+.results-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.compact-table {
+  margin-top: 12px;
+}
+.compact-table th,
+.compact-table td {
+  padding: 9px 10px;
+  font-size: 14px;
+}
 .graph {
   text-align: center;
   margin-top: 24px;
@@ -2790,6 +2817,15 @@ tr:nth-child(even) { background-color: #f8fbff; }
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 4px 10px rgba(31,45,61,0.06);
+}
+.report-graph-card {
+  margin-top: 0;
+  padding: 16px 18px 18px;
+}
+.report-graph-card #report-graph {
+  position: relative;
+  width: 100%;
+  height: 280px;
 }
 .header-row {
   display: flex;
@@ -2822,7 +2858,8 @@ tr:nth-child(even) { background-color: #f8fbff; }
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 28px;
+  max-width: 960px;
+  margin: 28px auto 0;
 }
 .print-btn,
 .download-btn {
@@ -2849,7 +2886,21 @@ tr:nth-child(even) { background-color: #f8fbff; }
   .print-btn,
   .download-btn,
   .report-actions { display:none; }
-  body { margin:0; box-shadow:none; border:none; padding:0; }
+  body { margin:0; padding:0; background:#ffffff; }
+  .report-page {
+    margin: 0 0 14px;
+    padding: 24px;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .results-stack,
+  .results-card,
+  table,
+  .graph {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
     `;
 
@@ -2877,66 +2928,74 @@ tr:nth-child(even) { background-color: #f8fbff; }
   <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
 </head>
 <body id="report-root">
-<div class="header-row">
-  <img src="${logoLeftSrc}" class="vl-logo" />
-  <h1>Virtual Labs Simulation Report</h1>
-  <img src="${logoRightSrc}" class="vl-logo" />
-</div>
-
-  <div class="section">
-    <p class="badge">Electrical Machines Lab</p>
-    <p><span class="label">Experiment Title:</span> To study the Load Characteristics of DC shunt generator</p>
-    <p><span class="label">Date:</span> ${reportDateText}</p>
-    <div class="info-grid">
-        <div class="info-card"><span class="label">Start Time:</span><br>${startTimeText}</div>
-        <div class="info-card"><span class="label">End Time:</span><br>${endTimeText}</div>
-        <div class="info-card"><span class="label">Total Time Spent:</span><br>${durationText}</div>
-      </div>
+  <div class="report-page">
+    <div class="header-row">
+      <img src="${logoLeftSrc}" class="vl-logo" />
+      <h1>Virtual Labs Simulation Report</h1>
+      <img src="${logoRightSrc}" class="vl-logo" />
     </div>
 
-  <div class="section">
-    <h2>Summary</h2>
-    <h3>Aim</h3>
-    <p style="text-align:justify;">To study the external characteristic of a DC shunt generator by varying the lamp load, measuring the terminal voltage and load current, and plotting the terminal voltage versus load current (V–I) curve.</p>
+    <div class="section">
+      <p class="badge">Electrical Machines Lab</p>
+      <p><span class="label">Experiment Title:</span> To Study the Load Characteristics of a DC Shunt Generator</p>
+      <p><span class="label">Date:</span> ${reportDateText}</p>
+      <div class="info-grid">
+          <div class="info-card"><span class="label">Start Time:</span><br>${startTimeText}</div>
+          <div class="info-card"><span class="label">End Time:</span><br>${endTimeText}</div>
+          <div class="info-card"><span class="label">Total Time Spent:</span><br>${durationText}</div>
+        </div>
+      </div>
 
-    <h3>Simulation Summary</h3>
-    <p style="text-align:justify;">Connections were completed as instructed, supply was switched ON, lamp load was varied, and the corresponding load current and terminal voltage readings were recorded, and a graph was generated between terminal voltage and load current.</p>
+    <div class="section">
+      <h2>Summary</h2>
+      <h3>Aim</h3>
+      <p style="text-align:justify;">To study the load characteristics of a DC shunt generator by varying the lamp load, measuring terminal voltage and load current, and plotting the V-I characteristic curve.</p>
 
-    <h3>Components and key Parameters</h3>
-    <ul class="two-column-list">
-      <li>MCB</li>
-      <li>3-Point Starter: 220V DC, 7.5 HP</li>
-      <li>DC Shunt Motor: 5 HP, 220 V DC, 19 A (max), 1500 RPM</li>
-      <li>DC Shunt Generator: 3 kW, 220 V DC, 1500 RPM</li>
-      <li>Load Type: Resistive Lamp Load</li>
-      <li>Bulbs: 10 × 200 W each</li>
-      <li>DC Voltmeter: 0-420 V</li>
-      <li>DC Ammeter: 0-30 A</li>
-      <li>Connecting Leads</li>
-    </ul>
- 
+      <h3>Simulation Summary</h3>
+      <p style="text-align:justify;">The circuit connections were completed as per the procedure. The supply was switched on, the lamp load was varied step by step, the corresponding load current and terminal voltage readings were recorded, and the load characteristic graph was plotted.</p>
+
+      <h3>Components and Key Parameters</h3>
+      <ul class="two-column-list">
+        <li>MCB</li>
+        <li>3-Point Starter: 220 V DC, 7.5 HP</li>
+        <li>DC Shunt Motor: 5 HP, 220 V DC, 19 A (max), 1500 RPM</li>
+        <li>DC Shunt Generator: 3 kW, 220 V DC, 1500 RPM</li>
+        <li>Load Type: Resistive Lamp Load</li>
+        <li>Bulbs: 10 x 200 W each</li>
+        <li>DC Voltmeter: 0-420 V</li>
+        <li>DC Ammeter: 0-30 A</li>
+        <li>Connecting Leads</li>
+      </ul>
+    </div>
   </div>
 
-  <div class="section">
-    <h3>Observation Table</h3>
-    <table>
-      <thead>
-        <tr><th>S.No.</th><th>Load Current (A)</th><th>Terminal Voltage (V)</th></tr>
-      </thead>
-      <tbody>
-        ${observationRows.length ? observationRows.map(function (r) {
-            return "<tr><td>" + r.sNo + "</td><td>" + r.current + "</td><td>" + r.voltage + "</td></tr>";
-        }).join("") : "<tr><td colspan='3'>No readings recorded.</td></tr>"}
-      </tbody>
-    </table>
+  <div class="report-page report-page--results">
+    <div class="section results-section">
+      <h2>Results</h2>
+      <div class="results-stack">
+        <div class="results-card">
+          <h3>Observation Table</h3>
+          <table class="compact-table">
+            <thead>
+              <tr><th>S.No.</th><th>Load Current (A)</th><th>Terminal Voltage (V)</th></tr>
+            </thead>
+            <tbody>
+              ${observationRows.length ? observationRows.map(function (r) {
+                  return "<tr><td>" + r.sNo + "</td><td>" + r.current + "</td><td>" + r.voltage + "</td></tr>";
+              }).join("") : "<tr><td colspan='3'>No readings recorded.</td></tr>"}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="graph report-graph-card results-card">
+          <h3>Graph</h3>
+          <div id="report-graph"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="section graph">
-    <h3>Graph</h3>
-    <div id="report-graph" style="position:relative;width:100%;height:360px;"></div>
-  </div>
-
-  <div class="report-actions">
+  <div class="report-actions" data-html2canvas-ignore="true">
     <button class="print-btn" onclick="window.print()">PRINT</button>
     <button class="download-btn" onclick="downloadReport()">DOWNLOAD</button>
   </div>
@@ -3002,8 +3061,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
           margin: [0.3, 0.3, 0.3, 0.3],
           filename: 'simulation-report.pdf',
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
-          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+          html2canvas: { scale: 2.2, useCORS: true, scrollX: 0, scrollY: 0 },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], before: '.report-page--results' }
         };
         return window.html2pdf().set(opts).from(element).save();
       }).catch(function() {

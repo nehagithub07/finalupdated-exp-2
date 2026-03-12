@@ -646,6 +646,36 @@
       return `${datePart}, ${timePart}`;
     }
 
+    function normalizeSimulationReportHtml(html) {
+      if (!html || typeof html !== "string") return html;
+
+      return html
+        .replace(
+          /<p><span class="label">Experiment Title:<\/span>\s*To study the Load Characteristics of DC shunt generator<\/p>/g,
+          '<p><span class="label">Experiment Title:</span> To Study the Load Characteristics of a DC Shunt Generator</p>'
+        )
+        .replace(
+          /<p style="text-align:justify;">To study the external characteristic of a DC shunt generator by varying the lamp load, measuring the terminal voltage and load current, and plotting the terminal voltage versus load current [^<]* curve\.<\/p>/g,
+          '<p style="text-align:justify;">To study the load characteristics of a DC shunt generator by varying the lamp load, measuring terminal voltage and load current, and plotting the V-I characteristic curve.</p>'
+        )
+        .replace(
+          /<p style="text-align:justify;">Connections were completed as instructed, supply was switched ON, lamp load was varied, and the corresponding load current and terminal voltage readings were recorded, and a graph was generated between terminal voltage and load current\.<\/p>/g,
+          '<p style="text-align:justify;">The circuit connections were completed as per the procedure. The supply was switched on, the lamp load was varied step by step, the corresponding load current and terminal voltage readings were recorded, and the load characteristic graph was plotted.</p>'
+        )
+        .replace(
+          /<h3>Components and key Parameters<\/h3>/g,
+          '<h3>Components and Key Parameters</h3>'
+        )
+        .replace(
+          /<li>3-Point Starter: 220V DC, 7\.5 HP<\/li>/g,
+          '<li>3-Point Starter: 220 V DC, 7.5 HP</li>'
+        )
+        .replace(
+          /<li>Bulbs: 10 [^<]* 200 W each<\/li>/g,
+          '<li>Bulbs: 10 x 200 W each</li>'
+        );
+    }
+
     function getSimulationReportData() {
       try {
         const activeHash = localStorage.getItem("vlab_exp2_active_user_hash");
@@ -657,7 +687,7 @@
           const html = localStorage.getItem(key);
           if (html && html.trim()) {
             const updatedAt = localStorage.getItem(key.replace("_html", "_updated_at"));
-            return { html, updatedAt };
+            return { html: normalizeSimulationReportHtml(html), updatedAt };
           }
         }
       } catch {}
@@ -668,7 +698,10 @@
           const data = JSON.parse(window.name.slice(PREFIX.length)) || {};
           const html = (data["vlab_exp2_simulation_report_html"] || "").toString();
           if (html && html.trim()) {
-            return { html, updatedAt: data["vlab_exp2_simulation_report_updated_at"] || null };
+            return {
+              html: normalizeSimulationReportHtml(html),
+              updatedAt: data["vlab_exp2_simulation_report_updated_at"] || null
+            };
           }
         }
       } catch {}
@@ -787,6 +820,16 @@
       const reportDoc = frameEl.contentDocument;
       const reportRoot = reportDoc?.getElementById("report-root") || reportDoc?.body;
       if (!reportDoc || !reportRoot) return [];
+
+      const reportPages = Array.from(reportRoot.querySelectorAll(".report-page"));
+      if (reportPages.length) {
+        const pageCanvases = [];
+        for (const reportPage of reportPages) {
+          const canvas = await captureSimulationGroupCanvas(reportDoc, [reportPage], scale);
+          if (canvas) pageCanvases.push(canvas);
+        }
+        return pageCanvases;
+      }
 
       const header = reportRoot.querySelector(".header-row");
       const sections = Array.from(reportRoot.querySelectorAll(".section"));
