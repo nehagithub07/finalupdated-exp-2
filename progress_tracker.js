@@ -138,7 +138,8 @@
     const hh = String(Math.floor(totalSec / 3600)).padStart(2, "0");
     const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, "0");
     const ss = String(totalSec % 60).padStart(2, "0");
-    return `${hh}:${mm}:${ss}`;
+    if (totalSec < 3600) return `${mm} min ${ss} sec`;
+    return `${hh} hr ${mm} min ${ss} sec`;
   }
 
   /* ------------------ PROGRESS REPORT ACCESS GUARD ------------------ */

@@ -343,12 +343,9 @@
   <div id="report-container" class="max-w-5xl mx-auto px-4 py-12">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div>
-      
         <h1 class="text-3xl font-bold text-slate-900">Progress Report</h1>
- 
       </div>
       <div class="flex flex-wrap gap-2">
-        
         <button id="downloadBtn" class="px-4 py-2 font-semibold">Download</button>
         <button id="resetBtn" class="px-4 py-2 font-semibold">Reset Data</button>
       </div>
@@ -587,7 +584,6 @@
         <section class="report-section">
           <div class="report-section-head">
             <h2 class="report-section-title" style="margin:0;">Assessment Scores</h2>
-            
           </div>
           <div class="report-table-wrap">
             <table class="report-table">
@@ -732,6 +728,94 @@
       }
     }
 
+    function getExportCaptureScale() {
+      return Math.min(3, Math.max(2.25, window.devicePixelRatio || 1.5));
+    }
+
+    async function captureSimulationGroupCanvas(reportDoc, nodes, scale) {
+      if (!reportDoc || !Array.isArray(nodes) || !nodes.length) return null;
+      if (typeof html2canvas !== "function") return null;
+
+      const host = reportDoc.createElement("div");
+      host.style.position = "fixed";
+      host.style.left = "-100000px";
+      host.style.top = "0";
+      host.style.width = "1040px";
+      host.style.margin = "0";
+      host.style.padding = "0";
+      host.style.pointerEvents = "none";
+      host.style.zIndex = "-1";
+
+      const page = reportDoc.createElement("div");
+      page.style.maxWidth = "960px";
+      page.style.margin = "0 auto";
+      page.style.padding = "32px";
+      page.style.background = "#ffffff";
+      page.style.border = "1px solid #e5e9f2";
+      page.style.borderRadius = "16px";
+      page.style.boxShadow = "0 10px 30px rgba(31, 45, 61, 0.12)";
+      page.style.boxSizing = "border-box";
+
+      nodes.forEach((node) => {
+        if (node) page.appendChild(node.cloneNode(true));
+      });
+
+      host.appendChild(page);
+      reportDoc.body.appendChild(host);
+
+      try {
+        await sleep(80);
+        return await html2canvas(page, {
+          scale,
+          useCORS: true,
+          allowTaint: true,
+          scrollX: 0,
+          scrollY: 0,
+          backgroundColor: "#ffffff"
+        });
+      } finally {
+        host.remove();
+      }
+    }
+
+    async function captureSimulationExportCanvases(frameEl, scale) {
+      if (!frameEl || frameEl.classList.contains("hidden")) return [];
+
+      await waitForIframeReady(frameEl, 6000);
+      await sleep(180);
+
+      const reportDoc = frameEl.contentDocument;
+      const reportRoot = reportDoc?.getElementById("report-root") || reportDoc?.body;
+      if (!reportDoc || !reportRoot) return [];
+
+      const header = reportRoot.querySelector(".header-row");
+      const sections = Array.from(reportRoot.querySelectorAll(".section"));
+      const groups = [];
+
+      const introGroup = [];
+      if (header) introGroup.push(header);
+      if (sections[0]) introGroup.push(sections[0]);
+      if (sections[1]) introGroup.push(sections[1]);
+      if (introGroup.length) groups.push(introGroup);
+
+      const observationAndGraphGroup = [];
+      if (sections[2]) observationAndGraphGroup.push(sections[2]);
+      if (sections[3]) observationAndGraphGroup.push(sections[3]);
+      if (observationAndGraphGroup.length) groups.push(observationAndGraphGroup);
+
+      for (let i = 4; i < sections.length; i++) {
+        groups.push([sections[i]]);
+      }
+
+      const canvases = [];
+      for (const group of groups) {
+        const canvas = await captureSimulationGroupCanvas(reportDoc, group, scale);
+        if (canvas) canvases.push(canvas);
+      }
+
+      return canvases;
+    }
+
     function sleep(ms = 0) {
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -766,7 +850,7 @@
       });
     }
 
-    async function captureSimulationFrameSnapshot(frameEl) {
+    async function captureSimulationFrameSnapshot(frameEl, scale = Math.min(2, window.devicePixelRatio || 1.5)) {
       if (!frameEl) return null;
       if (typeof html2canvas !== "function") return null;
 
@@ -780,7 +864,7 @@
       const docEl = doc.documentElement;
 
       const canvas = await html2canvas(body, {
-        scale: Math.min(2, window.devicePixelRatio || 1.5),
+        scale,
         useCORS: true,
         allowTaint: true,
         scrollX: 0,
@@ -973,50 +1057,14 @@
       firstPageWrapper.appendChild(firstPageClone);
       appendWrapper(firstPageWrapper);
 
-      const simulationWrapper = createDetachedExportWrapper(width);
-      const liveSimulationSection = document.getElementById("reportSimulationSection");
-      let simulationClone = null;
-
-      if (liveSimulationSection) {
-        simulationClone = liveSimulationSection.cloneNode(true);
-      } else {
-        simulationClone = document.createElement("section");
-        simulationClone.className = "report-section";
-        simulationClone.innerHTML =
-          '<h2 class="report-section-title">Simulation Report</h2><p class="report-muted">Simulation report not found.</p>';
-      }
-
-      const frameClone = simulationClone.querySelector("#simulationReportFrame");
-      if (frameClone) {
-        const liveFrame = document.getElementById("simulationReportFrame");
-        let replacement = null;
-
-        try {
-          replacement = await captureSimulationFrameSnapshot(liveFrame);
-        } catch (err) {
-          console.error("Simulation frame snapshot failed", err);
-        }
-
-        if (!replacement) {
-          const fallback = document.createElement("div");
-          fallback.className = "p-4 text-sm text-slate-700 bg-slate-50 border-t border-slate-200";
-          fallback.textContent = currentSimulationReport?.html
-            ? "Simulation report is available on the page. Snapshot could not be captured for PDF."
-            : "Simulation report not found.";
-          replacement = fallback;
-        }
-
-        frameClone.replaceWith(replacement);
-      }
-
-      simulationWrapper.appendChild(simulationClone);
-      appendWrapper(simulationWrapper);
+      const liveFrame = document.getElementById("simulationReportFrame");
+      const simulationCanvases = await captureSimulationExportCanvases(liveFrame, getExportCaptureScale());
 
       await sleep(60);
 
       return {
         firstNode: firstPageWrapper,
-        simulationNode: simulationWrapper,
+        simulationCanvases,
         cleanup: () => wrappers.forEach((wrapper) => wrapper.remove())
       };
     }
@@ -1139,10 +1187,15 @@
       let exportCleanup = null;
 
       try {
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "Preparing PDF...";
+        }
+
         const latestSimReport = getSimulationReportData();
         if (latestSimReport) currentSimulationReport = latestSimReport;
 
-        const captureScale = Math.min(2, window.devicePixelRatio || 1.5);
+        const captureScale = getExportCaptureScale();
         const captureOptions = {
           scale: captureScale,
           useCORS: true,
@@ -1153,17 +1206,23 @@
         };
 
         const exportContext = await prepareExportNodes();
-        if (!exportContext?.firstNode || !exportContext?.simulationNode) {
+        if (!exportContext?.firstNode) {
           throw new Error("Report export context is unavailable.");
         }
         exportCleanup = exportContext.cleanup;
 
         const firstCanvas = await html2canvas(exportContext.firstNode, captureOptions);
-        const simulationCanvas = await html2canvas(exportContext.simulationNode, captureOptions);
+        const simulationCanvases = Array.isArray(exportContext.simulationCanvases)
+          ? exportContext.simulationCanvases.filter(Boolean)
+          : [];
 
         const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
         addCanvasFittedSinglePage(pdf, firstCanvas, 24);
-        appendCanvasPaged(pdf, simulationCanvas, { margin: 24, startNewPage: true });
+
+        for (const simulationCanvas of simulationCanvases) {
+          pdf.addPage();
+          addCanvasFittedSinglePage(pdf, simulationCanvas, 24);
+        }
 
         pdf.save("progress-report.pdf");
       } catch (error) {
@@ -1172,6 +1231,7 @@
       } finally {
         if (exportCleanup) exportCleanup();
         if (btn) {
+          btn.disabled = false;
           if (typeof originalLabel === "string") btn.textContent = originalLabel;
         }
       }
