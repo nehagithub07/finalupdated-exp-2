@@ -565,7 +565,7 @@ const LAB_VOICE_CATALOG = [
   },
   {
     key: "report_ready",
-    text: "Your report has been generated successfully. Click OK to view your report.",
+    text: "Simulation completed successfully. You can now access your simulation report—click OK to view it.\nNote: Your experiment progress report is also ready.",
     audio: "./audio/report_ready.wav"
   },
   { key: "reset", text: "The simulation has been reset. You can start again.", audio: "./audio/reset.wav" },

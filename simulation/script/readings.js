@@ -762,9 +762,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     <div class="header-row">
       <img src="${logoLeftSrc}" class="vl-logo" />
       <div class="report-title-block">
-        <p class="report-kicker">Virtual Labs</p>
-        <h1>Simulation Report</h1>
-        <p class="report-subtitle">DC Shunt Generator Load Characteristics</p>
+        <p class="report-kicker"></p>
+        <h2>Virtual Labs Simulation Report</h2>
+   
       </div>
       <img src="${logoRightSrc}" class="vl-logo" />
     </div>

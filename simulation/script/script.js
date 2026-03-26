@@ -631,7 +631,7 @@ const LAB_VOICE_CATALOG = [
   },
   {
     key: "report_ready",
-    text: "Your report has been generated successfully. Click OK to view your report.",
+    text: "Simulation completed successfully. You can now access your simulation report—click OK to view it.\nNote: Your experiment progress report is also ready.",
     audio: "./audio/report_ready.wav"
   },
   { key: "reset", text: "The simulation has been reset. You can start again.", audio: "./audio/reset.wav" },
@@ -3021,9 +3021,9 @@ tr:nth-child(even) { background-color: #f8fbff; }
     <div class="header-row">
       <img src="${logoLeftSrc}" class="vl-logo" />
       <div class="report-title-block">
-        <p class="report-kicker">Virtual Labs</p>
-        <h1>Simulation Report</h1>
-        <p class="report-subtitle">DC Shunt Generator Load Characteristics</p>
+       
+        <h2>Virtual Labs Simulation Report</h2>
+      
       </div>
       <img src="${logoRightSrc}" class="vl-logo" />
     </div>
